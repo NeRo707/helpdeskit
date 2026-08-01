@@ -1,0 +1,246 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Plus, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import { DataTable, type Column } from "@/components/data-table";
+import { AssetStatusBadge } from "@/components/asset-status-badge";
+import type { Computer, AssetStatus } from "@/types/api";
+
+interface ComputersTableProps {
+  buildingId: string;
+  roomId: string;
+  computers: Computer[];
+  canEdit: boolean;
+}
+
+export function ComputersTable({
+  buildingId,
+  roomId,
+  computers,
+  canEdit,
+}: ComputersTableProps) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [editComputer, setEditComputer] = useState<Computer | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Form state
+  const [hostname, setHostname] = useState("");
+  const [ipAddress, setIpAddress] = useState("");
+  const [macAddress, setMacAddress] = useState("");
+  const [os, setOs] = useState("");
+  const [status, setStatus] = useState<AssetStatus>("ACTIVE");
+
+  const columns: Column<Computer>[] = [
+    { header: "Hostname", accessor: "hostname" },
+    { header: "IP Address", accessor: (row) => row.ipAddress || "—" },
+    { header: "OS", accessor: (row) => row.os || "—" },
+    {
+      header: "Status",
+      accessor: (row) => <AssetStatusBadge status={row.status} />,
+    },
+    { header: "Peripherals", accessor: (row) => row._count?.peripherals ?? 0 },
+    ...(canEdit
+      ? [
+          {
+            header: "Actions",
+            accessor: (row: Computer) => (
+              <div onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(row)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  const handleRowClick = (computer: Computer) => {
+    router.push(
+      `/buildings/${buildingId}/rooms/${roomId}/computers/${computer.id}`,
+    );
+  };
+
+  const handleEdit = (computer: Computer) => {
+    setEditComputer(computer);
+    setHostname(computer.hostname);
+    setIpAddress(computer.ipAddress || "");
+    setMacAddress(computer.macAddress || "");
+    setOs(computer.os || "");
+    setStatus(computer.status);
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditComputer(null);
+    setHostname("");
+    setIpAddress("");
+    setMacAddress("");
+    setOs("");
+    setStatus("ACTIVE");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const url = editComputer
+        ? `/api/buildings/${buildingId}/rooms/${roomId}/computers/${editComputer.id}`
+        : `/api/buildings/${buildingId}/rooms/${roomId}/computers`;
+      const method = editComputer ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hostname,
+          ipAddress: ipAddress || null,
+          macAddress: macAddress || null,
+          os: os || null,
+          status,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Failed to save computer");
+      }
+
+      toast.success(editComputer ? "Computer updated" : "Computer created");
+      handleClose();
+      router.refresh();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save computer",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      {canEdit && (
+        <div className="mb-4 flex justify-end">
+          <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Computer
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editComputer ? "Edit Computer" : "Add New Computer"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit}>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="computer-hostname">
+                      Hostname
+                    </FieldLabel>
+                    <Input
+                      id="computer-hostname"
+                      value={hostname}
+                      onChange={(e) => setHostname(e.target.value)}
+                      placeholder="Hostname"
+                      required
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="computer-ip">IP Address</FieldLabel>
+                    <Input
+                      id="computer-ip"
+                      value={ipAddress}
+                      onChange={(e) => setIpAddress(e.target.value)}
+                      placeholder="IP Address (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="computer-mac">MAC Address</FieldLabel>
+                    <Input
+                      id="computer-mac"
+                      value={macAddress}
+                      onChange={(e) => setMacAddress(e.target.value)}
+                      placeholder="MAC Address (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="computer-os">
+                      Operating System
+                    </FieldLabel>
+                    <Input
+                      id="computer-os"
+                      value={os}
+                      onChange={(e) => setOs(e.target.value)}
+                      placeholder="e.g., Windows 11, Ubuntu 22.04"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="computer-status">Status</FieldLabel>
+                    <Select
+                      value={status}
+                      onValueChange={(v) => setStatus(v as AssetStatus)}
+                    >
+                      <SelectTrigger id="computer-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ACTIVE">Active</SelectItem>
+                        <SelectItem value="INACTIVE">Inactive</SelectItem>
+                        <SelectItem value="UNDER_MAINTENANCE">
+                          Under Maintenance
+                        </SelectItem>
+                        <SelectItem value="DECOMMISSIONED">
+                          Decommissioned
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Saving..." : editComputer ? "Update" : "Create"}
+                  </Button>
+                </FieldGroup>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+
+      <DataTable
+        columns={columns}
+        data={computers}
+        onRowClick={handleRowClick}
+        emptyMessage="No computers found"
+      />
+    </div>
+  );
+}
