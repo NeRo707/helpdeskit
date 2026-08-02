@@ -1,9 +1,35 @@
-export type Role = 'ADMIN' | 'TECHNICIAN' | 'USER';
-export type AssetStatus = 'ACTIVE' | 'INACTIVE' | 'UNDER_MAINTENANCE' | 'DECOMMISSIONED';
-export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'ON_HOLD' | 'RESOLVED' | 'CLOSED';
-export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type PeripheralType = 'MONITOR' | 'KEYBOARD' | 'MOUSE' | 'PRINTER' | 'SCANNER' | 'WEBCAM' | 'HEADSET' | 'USB_HUB' | 'DOCKING_STATION' | 'OTHER';
-export type EntityType = 'COMPUTER' | 'PERIPHERAL';
+export type Role = "ADMIN" | "TECHNICIAN" | "USER";
+export type AssetStatus =
+  | "ACTIVE"
+  | "INACTIVE"
+  | "UNDER_MAINTENANCE"
+  | "DECOMMISSIONED";
+export type TicketStatus =
+  | "OPEN"
+  | "IN_PROGRESS"
+  | "ON_HOLD"
+  | "RESOLVED"
+  | "CLOSED";
+export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type PeripheralType =
+  | "MONITOR"
+  | "KEYBOARD"
+  | "MOUSE"
+  | "PRINTER"
+  | "SCANNER"
+  | "WEBCAM"
+  | "HEADSET"
+  | "USB_HUB"
+  | "DOCKING_STATION"
+  | "OTHER";
+export type EntityType = "COMPUTER" | "PERIPHERAL";
+export type NetworkDeviceType =
+  | "SWITCH"
+  | "ROUTER"
+  | "FIREWALL"
+  | "ACCESS_POINT"
+  | "MODEM"
+  | "OTHER";
 
 export type User = {
   id: string;
@@ -29,7 +55,6 @@ export type Room = {
   buildingId: string;
   name: string;
   floor: string | null;
-  capacity: number | null;
   createdAt: string;
   computers?: Computer[];
   _count?: { computers: number };
@@ -67,6 +92,25 @@ export type Peripheral = {
   createdAt: string;
 };
 
+export type NetworkDevice = {
+  id: string;
+  roomId: string | null;
+  type: NetworkDeviceType;
+  hostname: string | null;
+  ipAddress: string | null;
+  macAddress: string | null;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  ports: number | null;
+  status: AssetStatus;
+  purchaseDate: string | null;
+  warrantyEnd: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AssetHistory = {
   id: string;
   entityId: string;
@@ -74,7 +118,7 @@ export type AssetHistory = {
   action: string;
   snapshot: Record<string, unknown>;
   diff: Record<string, unknown> | null;
-  changedBy: Pick<User, 'id' | 'name' | 'email' | 'role'>;
+  changedBy: Pick<User, "id" | "name" | "email" | "role">;
   changedAt: string;
 };
 
@@ -90,9 +134,9 @@ export type Ticket = {
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  reportedBy?: Pick<User, 'id' | 'name' | 'email'>;
-  assignedTo?: Pick<User, 'id' | 'name' | 'email'> | null;
-  computer?: Pick<Computer, 'id' | 'hostname'> | null;
+  reportedBy?: Pick<User, "id" | "name" | "email">;
+  assignedTo?: Pick<User, "id" | "name" | "email"> | null;
+  computer?: Pick<Computer, "id" | "hostname"> | null;
   comments?: TicketComment[];
   _count?: { comments: number };
 };
@@ -104,5 +148,5 @@ export type TicketComment = {
   body: string;
   createdAt: string;
   updatedAt: string;
-  author?: Pick<User, 'id' | 'name' | 'role'>;
+  author?: Pick<User, "id" | "name" | "role">;
 };

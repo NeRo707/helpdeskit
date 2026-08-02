@@ -31,13 +31,11 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
   const [deleteRoom, setDeleteRoom] = useState<Room | null>(null);
   const [name, setName] = useState('');
   const [floor, setFloor] = useState('');
-  const [capacity, setCapacity] = useState('');
   const [loading, setLoading] = useState(false);
 
   const columns: Column<Room>[] = [
     { header: 'Name', accessor: 'name' },
     { header: 'Floor', accessor: (row) => row.floor || '—' },
-    { header: 'Capacity', accessor: (row) => row.capacity ?? '—' },
     { header: 'Computers', accessor: (row) => row._count?.computers ?? 0 },
     ...(isAdmin
       ? [
@@ -74,7 +72,6 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
     setEditRoom(room);
     setName(room.name);
     setFloor(room.floor || '');
-    setCapacity(room.capacity?.toString() || '');
     setOpen(true);
   };
 
@@ -83,7 +80,6 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
     setEditRoom(null);
     setName('');
     setFloor('');
-    setCapacity('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +98,6 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
         body: JSON.stringify({
           name,
           floor: floor || null,
-          capacity: capacity ? parseInt(capacity, 10) : null,
         }),
       });
 
@@ -179,16 +174,6 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
                       value={floor}
                       onChange={(e) => setFloor(e.target.value)}
                       placeholder="Floor (optional)"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="room-capacity">Capacity</FieldLabel>
-                    <Input
-                      id="room-capacity"
-                      type="number"
-                      value={capacity}
-                      onChange={(e) => setCapacity(e.target.value)}
-                      placeholder="Capacity (optional)"
                     />
                   </Field>
                   <Button type="submit" className="w-full" disabled={loading}>

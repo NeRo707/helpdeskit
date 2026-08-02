@@ -8,7 +8,6 @@ export default function BuildingDetailLoading() {
   const columns: Column<{ id: string }>[] = [
     { header: 'Name', accessor: () => <Skeleton className="h-5 w-24" /> },
     { header: 'Floor', accessor: () => <Skeleton className="h-5 w-16" /> },
-    { header: 'Capacity', accessor: () => <Skeleton className="h-5 w-12" /> },
     { header: 'Computers', accessor: () => <Skeleton className="h-5 w-12" /> },
   ];
 

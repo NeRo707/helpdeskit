@@ -74,10 +74,6 @@ export default async function RoomDetailPage({
               <dd className="text-sm">{room.floor || '—'}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-muted-foreground">Capacity</dt>
-              <dd className="text-sm">{room.capacity ?? '—'}</dd>
-            </div>
-            <div>
               <dt className="text-sm font-medium text-muted-foreground">Computers</dt>
               <dd className="text-sm">{room._count?.computers ?? room.computers?.length ?? 0}</dd>
             </div>
