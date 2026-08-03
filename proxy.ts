@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ['/login', '/register'];
+const PUBLIC_PATHS = ["/login", "/register"];
 
 function splitSetCookieHeader(setCookieHeader: string): string[] {
   return setCookieHeader
@@ -10,13 +10,15 @@ function splitSetCookieHeader(setCookieHeader: string): string[] {
 }
 
 function extractSetCookies(res: Response): string[] {
-  const withGetSetCookie = res.headers as Headers & { getSetCookie?: () => string[] };
-  if (typeof withGetSetCookie.getSetCookie === 'function') {
+  const withGetSetCookie = res.headers as Headers & {
+    getSetCookie?: () => string[];
+  };
+  if (typeof withGetSetCookie.getSetCookie === "function") {
     const values = withGetSetCookie.getSetCookie();
     if (values.length > 0) return values;
   }
 
-  const combined = res.headers.get('set-cookie');
+  const combined = res.headers.get("set-cookie");
   if (!combined) return [];
   return splitSetCookieHeader(combined);
 }
@@ -25,36 +27,43 @@ function getTokenExp(token?: string): number | null {
   if (!token) return null;
 
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length < 2) return null;
 
-    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), '=');
+    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = payload.padEnd(
+      payload.length + ((4 - (payload.length % 4)) % 4),
+      "=",
+    );
     const json = JSON.parse(atob(padded)) as { exp?: number };
-    return typeof json.exp === 'number' ? json.exp : null;
+    return typeof json.exp === "number" ? json.exp : null;
   } catch {
     return null;
   }
 }
 
 async function refreshSession(req: NextRequest): Promise<NextResponse | null> {
-  const refreshRes = await fetch(`${process.env.BACKEND_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { cookie: req.headers.get('cookie') ?? '' },
-    cache: 'no-store',
-  });
+  try {
+    const refreshRes = await fetch(`${process.env.BACKEND_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { cookie: req.headers.get("cookie") ?? "" },
+      cache: "no-store",
+    });
 
-  if (!refreshRes.ok) {
+    if (!refreshRes.ok) {
+      return null;
+    }
+
+    const response = NextResponse.next();
+    const setCookies = extractSetCookies(refreshRes);
+    for (const cookie of setCookies) {
+      response.headers.append("set-cookie", cookie);
+    }
+
+    return response;
+  } catch {
     return null;
   }
-
-  const response = NextResponse.next();
-  const setCookies = extractSetCookies(refreshRes);
-  for (const cookie of setCookies) {
-    response.headers.append('set-cookie', cookie);
-  }
-
-  return response;
 }
 
 export async function proxy(req: NextRequest) {
@@ -64,8 +73,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const accessToken = req.cookies.get('accessToken')?.value;
-  const refreshToken = req.cookies.get('refreshToken')?.value;
+  const accessToken = req.cookies.get("accessToken")?.value;
+  const refreshToken = req.cookies.get("refreshToken")?.value;
 
   if (!refreshToken) {
     return NextResponse.next();
@@ -73,7 +82,8 @@ export async function proxy(req: NextRequest) {
 
   const exp = getTokenExp(accessToken);
   const isMissingAccess = !accessToken;
-  const isExpiredOrNearExpiry = exp !== null && exp * 1000 <= Date.now() + 60_000;
+  const isExpiredOrNearExpiry =
+    exp !== null && exp * 1000 <= Date.now() + 60_000;
 
   if (!isMissingAccess && !isExpiredOrNearExpiry) {
     return NextResponse.next();
@@ -85,6 +95,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|icon.svg|icon-light-32x32.png|icon-dark-32x32.png|apple-icon.png).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|icon-light-32x32.png|icon-dark-32x32.png|apple-icon.png).*)",
   ],
 };
