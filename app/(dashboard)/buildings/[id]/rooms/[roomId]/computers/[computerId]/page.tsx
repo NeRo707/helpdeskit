@@ -8,6 +8,7 @@ import { AssetStatusBadge } from '@/components/asset-status-badge';
 import type { Computer, AssetHistory } from '@/types/api';
 import { PeripheralsSection } from './peripherals-section';
 import { AssetHistoryTimeline } from './asset-history-timeline';
+import AssetHistoryForm from './asset-history-form';
 
 async function fetchComputer(
   buildingId: string,
@@ -147,12 +148,15 @@ export default async function ComputerDetailPage({
       </Card>
 
       <PeripheralsSection
+        buildingId={buildingId}
+        roomId={roomId}
         computerId={computerId}
         peripherals={computer.peripherals || []}
         canEdit={canEdit}
       />
 
-      <AssetHistoryTimeline history={history} />
+      <AssetHistoryTimeline computerId={computerId} history={history} canEdit={canEdit} />
+      <AssetHistoryForm computerId={computerId} />
     </div>
   );
 }
