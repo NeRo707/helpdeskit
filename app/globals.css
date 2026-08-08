@@ -1,8 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
-
 html {
   color-scheme: dark;
 }
@@ -83,6 +81,45 @@ html {
   --sidebar-accent: hsl(230 16% 14%);
   --sidebar-accent-foreground: hsl(220 20% 88%);
   --sidebar-border: hsl(230 14% 15%);
+  --sidebar-ring: hsl(217 91% 60%);
+}
+
+.light {
+  --background: #ffffff;
+  --foreground: hsl(220 20% 12%);
+  --card: hsl(0 0% 96%);
+  --card-foreground: hsl(220 20% 12%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(220 20% 12%);
+  --primary: hsl(217 91% 60%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(230 16% 85%);
+  --secondary-foreground: hsl(220 20% 20%);
+  --muted: hsl(230 14% 82%);
+  --muted-foreground: hsl(220 10% 50%);
+  --accent: hsl(230 16% 80%);
+  --accent-foreground: hsl(220 20% 12%);
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 0%);
+  --success: hsl(142 71% 45%);
+  --success-foreground: hsl(0 0% 100%);
+  --border: hsl(230 14% 82%);
+  --input: hsl(230 14% 80%);
+  --ring: hsl(217 91% 60%);
+  --chart-1: hsl(217 91% 60%);
+  --chart-2: hsl(142 71% 45%);
+  --chart-3: hsl(38 92% 50%);
+  --chart-4: hsl(0 84% 60%);
+  --chart-5: hsl(220 10% 50%);
+  --sidebar: hsl(230 18% 91%);
+  --sidebar-foreground: hsl(220 10% 40%);
+  --sidebar-primary: hsl(217 91% 60%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(230 16% 86%);
+  --sidebar-accent-foreground: hsl(220 20% 12%);
+  --sidebar-border: hsl(230 14% 85%);
   --sidebar-ring: hsl(217 91% 60%);
 }
 

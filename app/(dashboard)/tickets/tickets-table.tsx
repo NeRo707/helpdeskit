@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate } from "@/lib/format";
-import type { Ticket } from "@/types/api";
+import type { TTicket } from "@/types/api";
 
 interface TicketsTableProps {
-  tickets: Ticket[];
+  tickets: TTicket[];
   currentStatus?: string;
   currentPriority?: string;
 }
@@ -44,7 +44,7 @@ export function TicketsTable({
           value={currentStatus || "all"}
           onValueChange={(v) => updateFilter("status", v)}
         >
-          <SelectTrigger className="h-8 w-[160px] font-mono text-xs">
+          <SelectTrigger className="h-8 w-40 font-mono text-xs">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -61,7 +61,7 @@ export function TicketsTable({
           value={currentPriority || "all"}
           onValueChange={(v) => updateFilter("priority", v)}
         >
-          <SelectTrigger className="h-8 w-[140px] font-mono text-xs">
+          <SelectTrigger className="h-8 w-35 font-mono text-xs">
             <SelectValue placeholder="Priority" />
           </SelectTrigger>
           <SelectContent>

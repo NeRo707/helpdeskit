@@ -11,14 +11,17 @@ import {
   LogOut,
   Monitor,
   ChevronLeft,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Role, User } from '@/types/api';
+import type { TRole, TUser } from '@/types/api';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 
 interface AppSidebarProps {
-  user: User;
+  user: TUser;
   onLogout: () => void;
 }
 
@@ -26,7 +29,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: Role[];
+  roles: TRole[];
 }
 
 const navItems: NavItem[] = [
@@ -66,6 +69,12 @@ const navItems: NavItem[] = [
 export function AppSidebar({ user, onLogout }: AppSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const filteredNavItems = navItems.filter((item) =>
     item.roles.includes(user.role)
@@ -74,6 +83,11 @@ export function AppSidebar({ user, onLogout }: AppSidebarProps) {
   const navLinkClass =
     'flex items-center gap-3 rounded px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground';
   const activeClass = 'bg-accent text-primary font-medium';
+  const isDark = mounted ? resolvedTheme === 'dark' : false;
+
+  const handleThemeToggle = () => {
+    setTheme(isDark ? 'light' : 'dark');
+  };
 
   return (
     <aside
@@ -111,6 +125,16 @@ export function AppSidebar({ user, onLogout }: AppSidebarProps) {
             <div className="mt-0.5 text-[10px] uppercase tracking-wider">{user.role}</div>
           </div>
         ) : null}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-3 text-muted-foreground"
+          onClick={handleThemeToggle}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+          {!collapsed ? <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span> : null}
+        </Button>
         <Button
           variant="ghost"
           size="sm"

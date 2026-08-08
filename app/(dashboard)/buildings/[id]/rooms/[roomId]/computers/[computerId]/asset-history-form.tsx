@@ -44,16 +44,16 @@ const AssetHistoryForm = ({ computerId }: { computerId: string }) => {
 
   return (
     <form onSubmit={handleSubmit} className="mt-6">
-      <div className="flex gap-2 ">
+      <div className="flex gap-2">
         <Textarea
           value={action}
           onChange={(e) => setAction(e.target.value)}
           placeholder="Describe the action (e.g., Repaired screen)..."
           rows={2}
-          className="flex-1 bg-card h-24"
+          className="flex-1 h-24 bg-card!"
         />
-        <Button type="submit" size="icon" disabled={loading || !action.trim()}>
-          <Send className="h-4 w-4" />
+        <Button className="w-24 h-24" type="submit" size="icon" disabled={loading || !action.trim()}>
+            <Send className="size-7" />
         </Button>
       </div>
     </form>

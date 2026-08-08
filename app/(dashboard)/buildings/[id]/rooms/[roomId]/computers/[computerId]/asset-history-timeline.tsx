@@ -7,11 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { AssetHistory } from "@/types/api";
+import type { TAssetHistory } from "@/types/api";
 
 interface AssetHistoryTimelineProps {
   computerId: string;
-  history: AssetHistory[];
+  history: TAssetHistory[];
   canEdit: boolean;
 }
 
@@ -142,7 +142,7 @@ export function AssetHistoryTimeline({
     return true;
   };
 
-  const canShowDetails = (entry: AssetHistory) => {
+  const canShowDetails = (entry: TAssetHistory) => {
     const hasDiff = !!entry.diff && Object.keys(entry.diff).length > 0;
     const hasSnapshot = hasUsefulSnapshot(entry.snapshot || {});
     return hasDiff || hasSnapshot;
@@ -172,6 +172,7 @@ export function AssetHistoryTimeline({
                 checked={allSelected}
                 onCheckedChange={(checked) => toggleAll(Boolean(checked))}
                 aria-label="Select all history records"
+                className="cursor-pointer"
               />
               <span className="text-xs text-muted-foreground">Select all</span>
             </div>
@@ -180,6 +181,7 @@ export function AssetHistoryTimeline({
               size="sm"
               disabled={deleting || selectedIds.length === 0}
               onClick={handleDeleteSelected}
+              className="cursor-pointer"
             >
               {deleting
                 ? "Deleting..."
@@ -201,6 +203,7 @@ export function AssetHistoryTimeline({
                       toggleSelection(entry.id, Boolean(checked))
                     }
                     aria-label={`Select history ${entry.id}`}
+                    className="cursor-pointer"
                   />
                 </div>
               )}

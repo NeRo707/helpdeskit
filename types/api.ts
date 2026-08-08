@@ -1,17 +1,24 @@
-export type Role = "ADMIN" | "TECHNICIAN" | "USER";
-export type AssetStatus =
+
+export const Role = {
+  ADMIN: "ADMIN",
+  TECHNICIAN: "TECHNICIAN",
+  USER: "USER",
+} as const;
+export type TRole = (typeof Role)[keyof typeof Role];
+
+export type TAssetStatus =
   | "ACTIVE"
   | "INACTIVE"
   | "UNDER_MAINTENANCE"
   | "DECOMMISSIONED";
-export type TicketStatus =
+export type TTicketStatus =
   | "OPEN"
   | "IN_PROGRESS"
   | "ON_HOLD"
   | "RESOLVED"
   | "CLOSED";
-export type TicketPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type PeripheralType =
+export type TTicketPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type TPeripheralType =
   | "MONITOR"
   | "KEYBOARD"
   | "MOUSE"
@@ -22,8 +29,8 @@ export type PeripheralType =
   | "USB_HUB"
   | "DOCKING_STATION"
   | "OTHER";
-export type EntityType = "COMPUTER" | "PERIPHERAL";
-export type NetworkDeviceType =
+export type TEntityType = "COMPUTER" | "PERIPHERAL";
+export type TNetworkDeviceType =
   | "SWITCH"
   | "ROUTER"
   | "FIREWALL"
@@ -31,36 +38,36 @@ export type NetworkDeviceType =
   | "MODEM"
   | "OTHER";
 
-export type User = {
+export type TUser = {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  role: TRole;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-export type Building = {
+export type TBuilding = {
   id: string;
   name: string;
   address: string | null;
   createdAt: string;
-  rooms?: Room[];
+  rooms?: TRoom[];
   _count?: { rooms: number };
 };
 
-export type Room = {
+export type TRoom = {
   id: string;
   buildingId: string;
   name: string;
   floor: string | null;
   createdAt: string;
-  computers?: Computer[];
+  computers?: TComputer[];
   _count?: { computers: number };
 };
 
-export type Computer = {
+export type TComputer = {
   id: string;
   roomId: string;
   hostname: string;
@@ -73,29 +80,29 @@ export type Computer = {
   storageGb: number | null;
   purchaseDate: string | null;
   warrantyEnd: string | null;
-  status: AssetStatus;
+  status: TAssetStatus;
   notes: string | null;
   createdAt: string;
-  peripherals?: Peripheral[];
+  peripherals?: TPeripheral[];
   _count?: { peripherals: number };
 };
 
-export type Peripheral = {
+export type TPeripheral = {
   id: string;
   computerId: string | null;
-  type: PeripheralType;
+  type: TPeripheralType;
   brand: string | null;
   model: string | null;
   serialNumber: string | null;
-  status: AssetStatus;
+  status: TAssetStatus;
   notes: string | null;
   createdAt: string;
 };
 
-export type NetworkDevice = {
+export type TNetworkDevice = {
   id: string;
   roomId: string | null;
-  type: NetworkDeviceType;
+  type: TNetworkDeviceType;
   hostname: string | null;
   ipAddress: string | null;
   macAddress: string | null;
@@ -103,7 +110,7 @@ export type NetworkDevice = {
   model: string | null;
   serialNumber: string | null;
   ports: number | null;
-  status: AssetStatus;
+  status: TAssetStatus;
   purchaseDate: string | null;
   warrantyEnd: string | null;
   notes: string | null;
@@ -111,42 +118,42 @@ export type NetworkDevice = {
   updatedAt: string;
 };
 
-export type AssetHistory = {
+export type TAssetHistory = {
   id: string;
   entityId: string;
-  entityType: EntityType;
+  entityType: TEntityType;
   action: string;
   snapshot: Record<string, unknown>;
   diff: Record<string, unknown> | null;
-  changedBy: Pick<User, "id" | "name" | "email" | "role">;
+  changedBy: Pick<TUser, "id" | "name" | "email" | "role">;
   changedAt: string;
 };
 
-export type Ticket = {
+export type TTicket = {
   id: string;
   title: string;
   description: string;
-  status: TicketStatus;
-  priority: TicketPriority;
+  status: TTicketStatus;
+  priority: TTicketPriority;
   reportedById: string;
   assignedToId: string | null;
   computerId: string | null;
   resolvedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  reportedBy?: Pick<User, "id" | "name" | "email">;
-  assignedTo?: Pick<User, "id" | "name" | "email"> | null;
-  computer?: Pick<Computer, "id" | "hostname"> | null;
-  comments?: TicketComment[];
+  reportedBy?: Pick<TUser, "id" | "name" | "email">;
+  assignedTo?: Pick<TUser, "id" | "name" | "email"> | null;
+  computer?: Pick<TComputer, "id" | "hostname"> | null;
+  comments?: TTicketComment[];
   _count?: { comments: number };
 };
 
-export type TicketComment = {
+export type TTicketComment = {
   id: string;
   ticketId: string;
   authorId: string;
   body: string;
   createdAt: string;
   updatedAt: string;
-  author?: Pick<User, "id" | "name" | "role">;
+  author?: Pick<TUser, "id" | "name" | "role">;
 };

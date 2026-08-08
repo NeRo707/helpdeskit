@@ -25,9 +25,10 @@ import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { DataTable, type Column } from "@/components/data-table";
 import { AssetStatusBadge } from "@/components/asset-status-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import type { Peripheral, PeripheralType, AssetStatus } from "@/types/api";
+import type { TPeripheral, TPeripheralType, TAssetStatus } from "@/types/api";
+import { DialogDescription } from "@radix-ui/react-dialog";
 
-const PERIPHERAL_TYPES: PeripheralType[] = [
+const PERIPHERAL_TYPES: TPeripheralType[] = [
   "MONITOR",
   "KEYBOARD",
   "MOUSE",
@@ -44,7 +45,7 @@ interface PeripheralsSectionProps {
   buildingId: string;
   roomId: string;
   computerId: string;
-  peripherals: Peripheral[];
+  peripherals: TPeripheral[];
   canEdit: boolean;
 }
 
@@ -57,20 +58,20 @@ export function PeripheralsSection({
 }: PeripheralsSectionProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editPeripheral, setEditPeripheral] = useState<Peripheral | null>(null);
-  const [deletePeripheral, setDeletePeripheral] = useState<Peripheral | null>(
+  const [editPeripheral, setEditPeripheral] = useState<TPeripheral | null>(null);
+  const [deletePeripheral, setDeletePeripheral] = useState<TPeripheral | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
 
   // Form state
-  const [type, setType] = useState<PeripheralType>("MONITOR");
+  const [type, setType] = useState<TPeripheralType>("MONITOR");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
-  const [status, setStatus] = useState<AssetStatus>("ACTIVE");
+  const [status, setStatus] = useState<TAssetStatus>("ACTIVE");
 
-  const columns: Column<Peripheral>[] = [
+  const columns: Column<TPeripheral>[] = [
     {
       header: "Type",
       accessor: (row) => row.type.replace("_", " "),
@@ -86,12 +87,13 @@ export function PeripheralsSection({
       ? [
           {
             header: "Actions",
-            accessor: (row: Peripheral) => (
+            accessor: (row: TPeripheral) => (
               <div className="flex gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleEdit(row)}
+                  className="cursor-pointer"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -99,6 +101,7 @@ export function PeripheralsSection({
                   variant="ghost"
                   size="sm"
                   onClick={() => setDeletePeripheral(row)}
+                  className="cursor-pointer"
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -109,7 +112,7 @@ export function PeripheralsSection({
       : []),
   ];
 
-  const handleEdit = (peripheral: Peripheral) => {
+  const handleEdit = (peripheral: TPeripheral) => {
     setEditPeripheral(peripheral);
     setType(peripheral.type);
     setBrand(peripheral.brand || "");
@@ -213,6 +216,11 @@ export function PeripheralsSection({
                 <DialogTitle>
                   {editPeripheral ? "Edit Peripheral" : "Add Peripheral"}
                 </DialogTitle>
+                <DialogDescription>
+                  {editPeripheral
+                    ? "Update the details of this peripheral."
+                    : "Enter the details of the new peripheral."}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
                 <FieldGroup>
@@ -220,7 +228,7 @@ export function PeripheralsSection({
                     <FieldLabel htmlFor="peripheral-type">Type</FieldLabel>
                     <Select
                       value={type}
-                      onValueChange={(v) => setType(v as PeripheralType)}
+                      onValueChange={(v) => setType(v as TPeripheralType)}
                     >
                       <SelectTrigger id="peripheral-type">
                         <SelectValue />
@@ -267,7 +275,7 @@ export function PeripheralsSection({
                     <FieldLabel htmlFor="peripheral-status">Status</FieldLabel>
                     <Select
                       value={status}
-                      onValueChange={(v) => setStatus(v as AssetStatus)}
+                      onValueChange={(v) => setStatus(v as TAssetStatus)}
                     >
                       <SelectTrigger id="peripheral-status">
                         <SelectValue />
