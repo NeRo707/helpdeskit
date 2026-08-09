@@ -1,4 +1,3 @@
-
 export const Role = {
   ADMIN: "ADMIN",
   TECHNICIAN: "TECHNICIAN",
@@ -6,37 +5,63 @@ export const Role = {
 } as const;
 export type TRole = (typeof Role)[keyof typeof Role];
 
-export type TAssetStatus =
-  | "ACTIVE"
-  | "INACTIVE"
-  | "UNDER_MAINTENANCE"
-  | "DECOMMISSIONED";
-export type TTicketStatus =
-  | "OPEN"
-  | "IN_PROGRESS"
-  | "ON_HOLD"
-  | "RESOLVED"
-  | "CLOSED";
-export type TTicketPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export const AssetStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+  UNDER_MAINTENANCE: "UNDER_MAINTENANCE",
+  DECOMMISSIONED: "DECOMMISSIONED",
+} as const;
+export type TAssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus];
+
+export const TicketStatus = {
+  OPEN: "OPEN",
+  IN_PROGRESS: "IN_PROGRESS",
+  ON_HOLD: "ON_HOLD",
+  RESOLVED: "RESOLVED",
+  CLOSED: "CLOSED",
+} as const;
+export type TTicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus];
+
+export const TicketPriority = {
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+  CRITICAL: "CRITICAL",
+} as const;
+export type TTicketPriority =
+  (typeof TicketPriority)[keyof typeof TicketPriority];
+
+export const PeripheralType = {
+  MONITOR: "MONITOR",
+  KEYBOARD: "KEYBOARD",
+  MOUSE: "MOUSE",
+  PRINTER: "PRINTER",
+  SCANNER: "SCANNER",
+  WEBCAM: "WEBCAM",
+  HEADSET: "HEADSET",
+  USB_HUB: "USB_HUB",
+  DOCKING_STATION: "DOCKING_STATION",
+  OTHER: "OTHER",
+} as const;
 export type TPeripheralType =
-  | "MONITOR"
-  | "KEYBOARD"
-  | "MOUSE"
-  | "PRINTER"
-  | "SCANNER"
-  | "WEBCAM"
-  | "HEADSET"
-  | "USB_HUB"
-  | "DOCKING_STATION"
-  | "OTHER";
-export type TEntityType = "COMPUTER" | "PERIPHERAL";
+  (typeof PeripheralType)[keyof typeof PeripheralType];
+
+export const EntityType = {
+  COMPUTER: "COMPUTER",
+  PERIPHERAL: "PERIPHERAL",
+} as const;
+export type TEntityType = (typeof EntityType)[keyof typeof EntityType];
+
+export const NetworkDeviceType = {
+  SWITCH: "SWITCH",
+  ROUTER: "ROUTER",
+  FIREWALL: "FIREWALL",
+  ACCESS_POINT: "ACCESS_POINT",
+  MODEM: "MODEM",
+  OTHER: "OTHER",
+} as const;
 export type TNetworkDeviceType =
-  | "SWITCH"
-  | "ROUTER"
-  | "FIREWALL"
-  | "ACCESS_POINT"
-  | "MODEM"
-  | "OTHER";
+  (typeof NetworkDeviceType)[keyof typeof NetworkDeviceType];
 
 export type TUser = {
   id: string;
