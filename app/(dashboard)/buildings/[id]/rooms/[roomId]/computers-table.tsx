@@ -23,12 +23,12 @@ import {
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { DataTable, type Column } from "@/components/data-table";
 import { AssetStatusBadge } from "@/components/asset-status-badge";
-import type { Computer, AssetStatus } from "@/types/api";
+import type { TComputer, TAssetStatus } from "@/types/api";
 
 interface ComputersTableProps {
   buildingId: string;
   roomId: string;
-  computers: Computer[];
+  computers: TComputer[];
   canEdit: boolean;
 }
 
@@ -40,7 +40,7 @@ export function ComputersTable({
 }: ComputersTableProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editComputer, setEditComputer] = useState<Computer | null>(null);
+  const [editComputer, setEditComputer] = useState<TComputer | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Form state
@@ -48,9 +48,9 @@ export function ComputersTable({
   const [ipAddress, setIpAddress] = useState("");
   const [macAddress, setMacAddress] = useState("");
   const [os, setOs] = useState("");
-  const [status, setStatus] = useState<AssetStatus>("ACTIVE");
+  const [status, setStatus] = useState<TAssetStatus>("ACTIVE");
 
-  const columns: Column<Computer>[] = [
+  const columns: Column<TComputer>[] = [
     { header: "Hostname", accessor: "hostname" },
     { header: "IP Address", accessor: (row) => row.ipAddress || "—" },
     { header: "OS", accessor: (row) => row.os || "—" },
@@ -63,7 +63,7 @@ export function ComputersTable({
       ? [
           {
             header: "Actions",
-            accessor: (row: Computer) => (
+            accessor: (row: TComputer) => (
               <div onClick={(e) => e.stopPropagation()}>
                 <Button
                   variant="ghost"
@@ -79,13 +79,13 @@ export function ComputersTable({
       : []),
   ];
 
-  const handleRowClick = (computer: Computer) => {
+  const handleRowClick = (computer: TComputer) => {
     router.push(
       `/buildings/${buildingId}/rooms/${roomId}/computers/${computer.id}`,
     );
   };
 
-  const handleEdit = (computer: Computer) => {
+  const handleEdit = (computer: TComputer) => {
     setEditComputer(computer);
     setHostname(computer.hostname);
     setIpAddress(computer.ipAddress || "");
@@ -208,7 +208,7 @@ export function ComputersTable({
                     <FieldLabel htmlFor="computer-status">Status</FieldLabel>
                     <Select
                       value={status}
-                      onValueChange={(v) => setStatus(v as AssetStatus)}
+                      onValueChange={(v) => setStatus(v as TAssetStatus)}
                     >
                       <SelectTrigger id="computer-status">
                         <SelectValue />

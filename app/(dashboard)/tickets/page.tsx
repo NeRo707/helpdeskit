@@ -1,45 +1,53 @@
-import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import Link from 'next/link';
-import { getMe } from '@/actions/auth';
-import { PageHeader } from '@/components/page-header';
-import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
-import type { Ticket } from '@/types/api';
-import { TicketsTable } from './tickets-table';
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { PlusCircle } from "lucide-react";
 
-async function fetchTickets(searchParams: Record<string, string | undefined>): Promise<Ticket[]> {
-  const cookieStore = await cookies();
+import { getMe } from "@/actions/auth";
+import { fetchAPI } from "@/lib/api";
+import { Role, type TTicket } from "@/types/api";
+import { ticketParamsCache } from "@/lib/searchparams";
+
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
+import { TicketsTable } from "./tickets-table";
+
+// fetchTickets accepts the plain object parsed by nuqs
+async function fetchTickets(params: {
+  status: string;
+  priority: string;
+  sort: string;
+  dir: string;
+}): Promise<TTicket[]> {
   const query = new URLSearchParams();
-  if (searchParams.status) query.set('status', searchParams.status);
-  if (searchParams.priority) query.set('priority', searchParams.priority);
 
-  const res = await fetch(`${process.env.BACKEND_URL}/tickets?${query.toString()}`, {
-    headers: { cookie: cookieStore.toString() },
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    if (res.status === 401) redirect('/login');
-    throw new Error('Failed to fetch tickets');
-  }
-  return res.json();
+  if (params.status && params.status !== "all")
+    query.set("status", params.status);
+  if (params.priority && params.priority !== "all")
+    query.set("priority", params.priority);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.dir) query.set("dir", params.dir);
+
+  return fetchAPI<TTicket[]>(`/tickets?${query.toString()}`);
 }
 
 export default async function TicketsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; priority?: string }>;
+  // Next.js 15 treats searchParams as a Promise
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const params = await searchParams;
+  // Await the raw searchParams promise, then pass it to the nuqs cache parser
+  const rawParams = await searchParams;
+  const params = ticketParamsCache.parse(rawParams);
+
   const user = await getMe();
 
   if (!user) {
-    redirect('/login');
+    redirect("/login");
   }
 
-  // USER role sees only their own tickets
-  if (user.role === 'USER') {
-    redirect('/tickets/my');
+  if (user.role === Role.USER) {
+    redirect("/tickets/my");
   }
 
   const tickets = await fetchTickets(params);
@@ -58,11 +66,7 @@ export default async function TicketsPage({
         }
       />
 
-      <TicketsTable
-        tickets={tickets}
-        currentStatus={params.status}
-        currentPriority={params.priority}
-      />
+      <TicketsTable tickets={tickets} />
     </div>
   );
 }

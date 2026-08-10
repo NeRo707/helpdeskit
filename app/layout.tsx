@@ -3,6 +3,7 @@ import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import "./globals.css";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -52,7 +53,9 @@ export default function RootLayout({
         className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} font-sans antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <NuqsAdapter>
           {children}
+          </NuqsAdapter>
           <Toaster position="top-right" theme="dark" />
         </ThemeProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
