@@ -3,8 +3,10 @@ import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
+import { LayoutClient } from "./layout.client";
+import { getMe } from "@/actions/auth";
 
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -42,11 +44,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getMe();
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -54,7 +57,9 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <NuqsAdapter>
-          {children}
+            <LayoutClient user={user}>
+              {children}
+            </LayoutClient>
           </NuqsAdapter>
           <Toaster position="top-right" theme="dark" />
         </ThemeProvider>
