@@ -74,6 +74,7 @@ html {
   --chart-3: hsl(38 92% 50%);
   --chart-4: hsl(0 84% 60%);
   --chart-5: hsl(220 10% 50%);
+  --chart-6: hsl(25, 95%, 53%, 80%);
   --sidebar: hsl(230 18% 9%);
   --sidebar-foreground: hsl(220 10% 60%);
   --sidebar-primary: hsl(217 91% 60%);
@@ -113,6 +114,7 @@ html {
   --chart-3: hsl(38 92% 50%);
   --chart-4: hsl(0 84% 60%);
   --chart-5: hsl(220 10% 50%);
+  --chart-6: hsl(25, 95%, 53%, 20%);
   --sidebar: hsl(230 18% 91%);
   --sidebar-foreground: hsl(220 10% 40%);
   --sidebar-primary: hsl(217 91% 60%);
@@ -173,11 +175,19 @@ html {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground antialiased;
+  /* Grid for Light Mode */
+  .light {
     background-image:
-      linear-gradient(hsl(230 14% 14% / 0.5) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(230 14% 14% / 0.5) 1px, transparent 1px);
+      linear-gradient(hsl(230 10% 80% / 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(230 10% 80% / 0.5) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Grid for Dark Mode */
+  .dark {
+    background-image:
+      linear-gradient(hsl(230 14% 20% / 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(230 14% 20% / 0.5) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 
