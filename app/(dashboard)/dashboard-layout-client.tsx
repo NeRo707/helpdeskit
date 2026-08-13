@@ -2,7 +2,6 @@
 
 import { useTransition } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Toaster } from "@/components/ui/sonner";
 import type { TUser } from "@/types/api";
 
 interface DashboardLayoutClientProps {
