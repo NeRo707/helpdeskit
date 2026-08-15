@@ -228,7 +228,7 @@ export function AssetHistoryTimeline({
                   </span>
                 </div>
                 <p className="mt-1 text-sm">
-                  Changed by{" "}
+                  {" "}
                   <span className="font-medium">{entry.changedBy.name}</span>
                   <span className="text-muted-foreground">
                     {" "}
