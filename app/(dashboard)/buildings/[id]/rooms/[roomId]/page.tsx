@@ -3,11 +3,12 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { getMe } from '@/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronLeft } from 'lucide-react';
-import type { Room } from '@/types/api';
+import { ChevronLeft, Network } from 'lucide-react';
+import type { TRoom } from '@/types/api';
 import { ComputersTable } from './computers-table';
+import { NetworkDevicesTable } from './netdevices-table';
 
-async function fetchRoom(buildingId: string, roomId: string): Promise<Room> {
+async function fetchRoom(buildingId: string, roomId: string): Promise<TRoom> {
   const cookieStore = await cookies();
   const res = await fetch(`${process.env.BACKEND_URL}/buildings/${buildingId}/rooms/${roomId}`, {
     headers: { cookie: cookieStore.toString() },
@@ -38,6 +39,7 @@ export default async function RoomDetailPage({
   }
 
   const room = await fetchRoom(buildingId, roomId);
+  console.log(room);
   const canEdit = user.role === 'ADMIN' || user.role === 'TECHNICIAN';
 
   return (
@@ -83,6 +85,13 @@ export default async function RoomDetailPage({
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Computers</h2>
+        <h2 className="mb-4 text-xl font-semibold">Network Devices</h2>
+        <NetworkDevicesTable
+          buildingId={buildingId}
+          roomId={roomId}
+          networkDevices={room.networkDevices || []}
+          canEdit={canEdit}
+        />
         <ComputersTable
           buildingId={buildingId}
           roomId={roomId}

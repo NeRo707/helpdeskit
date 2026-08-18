@@ -23,8 +23,9 @@ interface TicketsTableProps {
   tickets: TTicket[];
 }
 
-const SORT_FIELDS = ["title", "priority", "status", "createdAt"] as const;
+const SORT_FIELDS = ["title", "priority", "status", "createdAt", "assigned"] as const;
 const DIRECTIONS  = ["asc", "desc"] as const;
+const SEARCH_FIELDS = ["title", "reporter", "assigned"] as const;
 
 type SortField = typeof SORT_FIELDS[number];
 
@@ -33,7 +34,7 @@ const COLUMNS: { id: string; label: string; sortable: boolean }[] = [
   { id: "priority",   label: "Priority", sortable: true  },
   { id: "status",     label: "Status",   sortable: true  },
   { id: "reportedBy", label: "Reporter", sortable: false },
-  { id: "assignedTo", label: "Assigned", sortable: false },
+  { id: "assigned", label: "Assigned", sortable: true },
   { id: "createdAt",  label: "Created",  sortable: true  },
 ];
 
@@ -50,6 +51,8 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
       priority: parseAsString.withDefault(""),
       sort:     parseAsStringLiteral(SORT_FIELDS).withDefault("createdAt"),
       dir:      parseAsStringLiteral(DIRECTIONS).withDefault("desc"),
+      by:       parseAsStringLiteral(SEARCH_FIELDS).withDefault("title"),
+      q:        parseAsString.withDefault(""),
     },
     { shallow: false },
   );

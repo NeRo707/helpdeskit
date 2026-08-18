@@ -26,7 +26,7 @@ export function LayoutClient({ user, children }: LayoutClientProps) {
   return (
     <>
       {!user && (
-        <div className="p-4 flex justify-end">
+        <div className="absolute top-4 right-4 flex justify-end">
           <Button
             variant="ghost"
             size="sm"

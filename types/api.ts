@@ -89,7 +89,8 @@ export type TRoom = {
   floor: string | null;
   createdAt: string;
   computers?: TComputer[];
-  _count?: { computers: number };
+  networkDevices?: TNetworkDevice[];
+  _count?: { computers: number; networkDevices: number };
 };
 
 export type TComputer = {

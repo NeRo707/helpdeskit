@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { User } from "@/types/api";
+import type { TUser } from "@/types/api";
 
 const ACCESS_TOKEN_MAX_AGE = 15 * 60;
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
@@ -15,6 +15,7 @@ function splitSetCookieHeader(setCookieHeader: string): string[] {
 }
 
 function extractSetCookies(res: Response): string[] {
+  if (!res?.headers) return [];
   const withGetSetCookie = res.headers as Headers & {
     getSetCookie?: () => string[];
   };
@@ -66,7 +67,7 @@ async function setAuthCookiesFromResponse(res: Response) {
   }
 }
 
-export async function getMe(): Promise<User | null> {
+export async function getMe(): Promise<TUser | null> {
   try {
     const cookieStore = await cookies();
     const meRes = await fetch(`${process.env.BACKEND_URL}/auth/me`, {
@@ -86,18 +87,14 @@ export async function getMe(): Promise<User | null> {
 }
 
 export async function loginAction(email: string, password: string) {
-  const res = await fetch(`${process.env.BACKEND_URL}/auth/login`, {
+  const res: Response = await authFetch("/auth/login", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Login failed");
-  }
 
   await setAuthCookiesFromResponse(res);
-  redirect("/dashboard");
 }
 
 export async function registerAction(
@@ -128,4 +125,23 @@ export async function logoutAction() {
   cookieStore.delete("accessToken");
   cookieStore.delete("refreshToken");
   redirect("/login");
+}
+
+export async function authFetch(path: string, options?: RequestInit): Promise<Response> {
+  const cookieStore = await cookies();
+  const { headers: optionHeaders, ...restOptions } = options ?? {};
+
+  const res = await fetch(`${process.env.BACKEND_URL}${path}`, {
+    cache: 'no-store',
+    ...restOptions,
+    headers: {
+      cookie: cookieStore.toString(),
+      ...(optionHeaders as Record<string, string>),
+    },
+  });
+
+  if (res.status > 400 && res.status < 500) redirect('/login');
+  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
+
+  return res;
 }

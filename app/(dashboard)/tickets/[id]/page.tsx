@@ -5,33 +5,10 @@ import { getMe } from '@/actions/auth';
 import { ChevronLeft } from 'lucide-react';
 import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/format';
-import type { Ticket, User } from '@/types/api';
+import { Role, type TTicket, type TUser } from '@/types/api';
 import { TicketActions } from './ticket-actions';
 import { TicketComments } from './ticket-comments';
-
-async function fetchTicket(id: string): Promise<Ticket> {
-  const cookieStore = await cookies();
-  const res = await fetch(`${process.env.BACKEND_URL}/tickets/${id}`, {
-    headers: { cookie: cookieStore.toString() },
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    if (res.status === 401) redirect('/login');
-    if (res.status === 404) redirect('/tickets');
-    throw new Error('Failed to fetch ticket');
-  }
-  return res.json();
-}
-
-async function fetchUsers(): Promise<User[]> {
-  const cookieStore = await cookies();
-  const res = await fetch(`${process.env.BACKEND_URL}/users`, {
-    headers: { cookie: cookieStore.toString() },
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
+import { fetchAPI } from '@/lib/api';
 
 export default async function TicketDetailPage({
   params,
@@ -45,17 +22,17 @@ export default async function TicketDetailPage({
     redirect('/login');
   }
 
-  const ticket = await fetchTicket(id);
-  const canManage = user.role === 'ADMIN' || user.role === 'TECHNICIAN';
+  const ticket : TTicket = await fetchAPI(`/tickets/${id}`);
+  const canManage = user.role === Role.ADMIN || user.role === Role.TECHNICIAN;
 
   // Only fetch users if user can manage tickets
-  const users = canManage ? await fetchUsers() : [];
+  const users: TUser[] = canManage ? await fetchAPI('/users') : [];
 
   return (
     <div className="space-y-6">
       <div className="mb-6">
         <Link
-          href={user.role === 'USER' ? '/tickets/my' : '/tickets'}
+          href={user.role === Role.USER ? '/tickets/my' : '/tickets'}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />

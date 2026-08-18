@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RoleBadge } from '@/components/role-badge';
-import type { TicketComment } from '@/types/api';
+import type { TTicketComment } from '@/types/api';
 
 interface TicketCommentsProps {
   ticketId: string;
-  comments: TicketComment[];
+  comments: TTicketComment[];
 }
 
 export function TicketComments({ ticketId, comments }: TicketCommentsProps) {

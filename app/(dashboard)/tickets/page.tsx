@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Search } from "lucide-react";
 
 import { getMe } from "@/actions/auth";
 import { fetchAPI } from "@/lib/api";
@@ -10,6 +10,7 @@ import { ticketParamsCache } from "@/lib/searchparams";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { TicketsTable } from "./tickets-table";
+import SearchParamsForm from "./_components/SearchParamsForm";
 
 // fetchTickets accepts the plain object parsed by nuqs
 async function fetchTickets(params: {
@@ -17,6 +18,8 @@ async function fetchTickets(params: {
   priority: string;
   sort: string;
   dir: string;
+  by: string;
+  q: string;
 }): Promise<TTicket[]> {
   const query = new URLSearchParams();
 
@@ -26,6 +29,8 @@ async function fetchTickets(params: {
     query.set("priority", params.priority);
   if (params.sort) query.set("sort", params.sort);
   if (params.dir) query.set("dir", params.dir);
+  if (params.by) query.set("by", params.by);
+  if (params.q) query.set("q", params.q);
 
   return fetchAPI<TTicket[]>(`/tickets?${query.toString()}`);
 }
@@ -65,7 +70,7 @@ export default async function TicketsPage({
           </Link>
         }
       />
-
+      <SearchParamsForm initialValues={params} />
       <TicketsTable tickets={tickets} />
     </div>
   );

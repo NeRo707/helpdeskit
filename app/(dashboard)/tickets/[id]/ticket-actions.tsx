@@ -1,101 +1,83 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { FieldGroup, Field, FieldLabel } from '@/components/ui/field';
-import type { TicketStatus, User } from '@/types/api';
+} from "@/components/ui/dialog";
+import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
+import type { TTicketStatus, TUser } from "@/types/api";
+import { fetchAPI } from "@/lib/api";
+import { assignTicket, updateTicketStatus } from "@/actions/tickets";
 
 interface TicketActionsProps {
   ticketId: string;
-  currentStatus: TicketStatus;
+  currentStatus: TTicketStatus;
   currentAssigneeId: string | null;
-  users: User[];
+  users: TUser[];
 }
 
-export function TicketActions({ 
-  ticketId, 
-  currentStatus, 
+export function TicketActions({
+  ticketId,
+  currentStatus,
   currentAssigneeId,
-  users 
+  users,
 }: TicketActionsProps) {
   const router = useRouter();
   const [status, setStatus] = useState(currentStatus);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(currentAssigneeId || '');
-  const [loading, setLoading] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(currentAssigneeId || "");
+  const [isPending, startTransition] = useTransition();
 
-  const handleStatusChange = async (newStatus: TicketStatus) => {
+  const handleStatusChange = (newStatus: TTicketStatus) => {
     setStatus(newStatus);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/tickets/${ticketId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to update status');
+    startTransition(async () => {
+      try {
+        await updateTicketStatus(ticketId, newStatus);
+        toast.success("Status updated");
+        router.refresh();
+      } catch (err) {
+        setStatus(currentStatus); // rollback
+        toast.error(
+          err instanceof Error ? err.message : "Failed to update status",
+        );
       }
-
-      toast.success('Status updated');
-      router.refresh();
-    } catch (err) {
-      setStatus(currentStatus);
-      toast.error(err instanceof Error ? err.message : 'Failed to update status');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
-  const handleAssign = async () => {
+  const handleAssign = () => {
     if (!selectedUserId) return;
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/tickets/${ticketId}/assign`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUserId }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to assign ticket');
+    startTransition(async () => {
+      try {
+        await assignTicket(ticketId, selectedUserId);
+        toast.success("Ticket assigned");
+        setAssignOpen(false);
+        router.refresh();
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to assign ticket",
+        );
       }
-
-      toast.success('Ticket assigned');
-      setAssignOpen(false);
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to assign ticket');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   // Filter to only show technicians and admins for assignment
-  const assignableUsers = users.filter((u) => 
-    u.role === 'ADMIN' || u.role === 'TECHNICIAN'
+  const assignableUsers = users.filter(
+    (u) => u.role === "ADMIN" || u.role === "TECHNICIAN",
   );
 
   return (
@@ -108,10 +90,10 @@ export function TicketActions({
           <label className="text-sm font-medium text-muted-foreground mb-2 block">
             Update Status
           </label>
-          <Select 
-            value={status} 
-            onValueChange={(v) => handleStatusChange(v as TicketStatus)}
-            disabled={loading}
+          <Select
+            value={status}
+            onValueChange={(v) => handleStatusChange(v as TTicketStatus)}
+            disabled={isPending}
           >
             <SelectTrigger>
               <SelectValue />
@@ -139,8 +121,8 @@ export function TicketActions({
             <FieldGroup>
               <Field>
                 <FieldLabel>Select User</FieldLabel>
-                <Select 
-                  value={selectedUserId} 
+                <Select
+                  value={selectedUserId}
                   onValueChange={setSelectedUserId}
                 >
                   <SelectTrigger>
@@ -155,12 +137,12 @@ export function TicketActions({
                   </SelectContent>
                 </Select>
               </Field>
-              <Button 
-                onClick={handleAssign} 
+              <Button
+                onClick={handleAssign}
                 className="w-full"
-                disabled={!selectedUserId || loading}
+                disabled={!selectedUserId || isPending}
               >
-                {loading ? 'Assigning...' : 'Assign'}
+                {isPending ? "Assigning..." : "Assign"}
               </Button>
             </FieldGroup>
           </DialogContent>
