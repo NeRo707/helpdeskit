@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { getMe } from '@/actions/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft } from 'lucide-react';
-import type { Building } from '@/types/api';
+import type { TBuilding } from '@/types/api';
 import { RoomsTable } from './rooms-table';
 
-async function fetchBuilding(id: string): Promise<Building> {
+async function fetchBuilding(id: string): Promise<TBuilding> {
   const cookieStore = await cookies();
   const res = await fetch(`${process.env.BACKEND_URL}/buildings/${id}`, {
     headers: { cookie: cookieStore.toString() },
@@ -86,10 +86,10 @@ export default async function BuildingDetailPage({
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Rooms</h2>
-        <RoomsTable 
-          buildingId={id} 
-          rooms={building.rooms || []} 
-          isAdmin={user.role === 'ADMIN'} 
+        <RoomsTable
+          buildingId={id}
+          rooms={building.rooms || []}
+          isAdmin={user.role === 'ADMIN'}
         />
       </div>
     </div>
