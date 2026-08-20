@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RoleBadge } from '@/components/role-badge';
 import type { TTicketComment } from '@/types/api';
+import { useAddComment } from '@/hooks/use-tickets';
 
 interface TicketCommentsProps {
   ticketId: string;
@@ -16,36 +16,25 @@ interface TicketCommentsProps {
 }
 
 export function TicketComments({ ticketId, comments }: TicketCommentsProps) {
-  const router = useRouter();
   const [body, setBody] = useState('');
-  const [loading, setLoading] = useState(false);
+  // useAddComment invalidates the ticket query on success → fresh comments appear
+  const addComment = useAddComment();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!body.trim()) return;
 
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/tickets/${ticketId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to add comment');
-      }
-
-      toast.success('Comment added');
-      setBody('');
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to add comment');
-    } finally {
-      setLoading(false);
-    }
+    addComment.mutate(
+      { ticketId, body },
+      {
+        onSuccess: () => {
+          toast.success('Comment added');
+          setBody('');
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : 'Failed to add comment'),
+      },
+    );
   };
 
   return (
@@ -84,7 +73,11 @@ export function TicketComments({ ticketId, comments }: TicketCommentsProps) {
               rows={2}
               className="flex-1"
             />
-            <Button type="submit" size="icon" disabled={loading || !body.trim()}>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={addComment.isPending || !body.trim()}
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>

@@ -1,7 +1,23 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+/**
+ * KEY CONCEPT - useMutation vs Server Actions + router.refresh():
+ *
+ * Old pattern:
+ *   1. Call server action (round trip to Node.js)
+ *   2. Call router.refresh() (triggers full server re-render)
+ *   3. Wait for the page to re-render with fresh data
+ *   → No optimistic update, user sees a delay
+ *
+ * New pattern (React Query):
+ *   1. useMutation fires - cache is updated OPTIMISTICALLY (instant)
+ *   2. API call runs in background
+ *   3. On success: query is invalidated → background refetch confirms the change
+ *   4. On error: cache is rolled back to previous state automatically
+ *   → User sees the update immediately, server confirms silently
+ */
+
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +37,7 @@ import {
 } from "@/components/ui/dialog";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import type { TTicketStatus, TUser } from "@/types/api";
-import { fetchAPI } from "@/lib/api";
-import { assignTicket, updateTicketStatus } from "@/actions/tickets";
+import { useUpdateTicketStatus, useAssignTicket } from "@/hooks/use-tickets";
 
 interface TicketActionsProps {
   ticketId: string;
@@ -37,48 +52,48 @@ export function TicketActions({
   currentAssigneeId,
   users,
 }: TicketActionsProps) {
-  const router = useRouter();
-  const [status, setStatus] = useState(currentStatus);
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(currentAssigneeId || "");
-  const [isPending, startTransition] = useTransition();
+
+  // -- React Query mutations --------------------------------------------------
+  // These hooks handle loading state, optimistic updates, and cache invalidation.
+  // No need for useTransition, local loading state, or router.refresh().
+  const updateStatus = useUpdateTicketStatus();
+  const assignTicket = useAssignTicket();
 
   const handleStatusChange = (newStatus: TTicketStatus) => {
-    setStatus(newStatus);
-    startTransition(async () => {
-      try {
-        await updateTicketStatus(ticketId, newStatus);
-        toast.success("Status updated");
-        router.refresh();
-      } catch (err) {
-        setStatus(currentStatus); // rollback
-        toast.error(
-          err instanceof Error ? err.message : "Failed to update status",
-        );
-      }
-    });
+    updateStatus.mutate(
+      { id: ticketId, status: newStatus },
+      {
+        // onSuccess/onError are per-call overrides on top of the hook's defaults
+        onSuccess: () => toast.success("Status updated"),
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to update status"),
+      },
+    );
   };
 
   const handleAssign = () => {
     if (!selectedUserId) return;
-    startTransition(async () => {
-      try {
-        await assignTicket(ticketId, selectedUserId);
-        toast.success("Ticket assigned");
-        setAssignOpen(false);
-        router.refresh();
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to assign ticket",
-        );
-      }
-    });
+    assignTicket.mutate(
+      { id: ticketId, assignedToId: selectedUserId },
+      {
+        onSuccess: () => {
+          toast.success("Ticket assigned");
+          setAssignOpen(false);
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to assign ticket"),
+      },
+    );
   };
 
-  // Filter to only show technicians and admins for assignment
   const assignableUsers = users.filter(
     (u) => u.role === "ADMIN" || u.role === "TECHNICIAN",
   );
+
+  // isPending comes from the mutation - true while the API call is in-flight
+  const isPending = updateStatus.isPending || assignTicket.isPending;
 
   return (
     <Card>
@@ -91,7 +106,7 @@ export function TicketActions({
             Update Status
           </label>
           <Select
-            value={status}
+            value={currentStatus}
             onValueChange={(v) => handleStatusChange(v as TTicketStatus)}
             disabled={isPending}
           >
@@ -142,7 +157,7 @@ export function TicketActions({
                 className="w-full"
                 disabled={!selectedUserId || isPending}
               >
-                {isPending ? "Assigning..." : "Assign"}
+                {assignTicket.isPending ? "Assigning..." : "Assign"}
               </Button>
             </FieldGroup>
           </DialogContent>

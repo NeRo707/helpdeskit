@@ -174,7 +174,7 @@ export function RecentTickets({ tickets }: RecentTicketsProps) {
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">
-                  {ticket.reportedBy?.name ?? "—"}
+                  {ticket.reportedBy?.name ?? "-"}
                 </TableCell>
 
                 <TableCell className="text-muted-foreground">

@@ -15,12 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate } from "@/lib/format";
 import type { TTicket } from "@/types/api";
 
 interface TicketsTableProps {
   tickets: TTicket[];
+  isLoading?: boolean;
+  isError?: boolean;
 }
 
 const SORT_FIELDS = ["title", "priority", "status", "createdAt", "assigned"] as const;
@@ -34,7 +37,7 @@ const COLUMNS: { id: string; label: string; sortable: boolean }[] = [
   { id: "priority",   label: "Priority", sortable: true  },
   { id: "status",     label: "Status",   sortable: true  },
   { id: "reportedBy", label: "Reporter", sortable: false },
-  { id: "assigned", label: "Assigned", sortable: true },
+  { id: "assigned",   label: "Assigned", sortable: true  },
   { id: "createdAt",  label: "Created",  sortable: true  },
 ];
 
@@ -44,7 +47,9 @@ function SortIcon({ state }: { state: false | "asc" | "desc" }) {
   return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-40" />;
 }
 
-export function TicketsTable({ tickets }: TicketsTableProps) {
+export function TicketsTable({ tickets, isLoading, isError }: TicketsTableProps) {
+  // Sort params still live here - they update the URL which triggers a React
+  // Query refetch via TicketsPageClient's useTickets(params) call.
   const [params, setParams] = useQueryStates(
     {
       status:   parseAsString.withDefault(""),
@@ -102,7 +107,7 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
       </div>
 
       <div className="rounded border border-border">
-        <Table className="bg-card"  >
+        <Table className="bg-card">
           <TableHeader>
             <TableRow className="font-mono text-xs uppercase tracking-wider">
               {COLUMNS.map(({ id, label, sortable }) => (
@@ -121,27 +126,49 @@ export function TicketsTable({ tickets }: TicketsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tickets.length === 0 ? (
+            {/* -- Loading state -- */}
+            {isLoading && Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                {COLUMNS.map((col) => (
+                  <TableCell key={col.id}>
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+
+            {/* -- Error state -- */}
+            {isError && (
+              <TableRow>
+                <TableCell colSpan={COLUMNS.length} className="p-8 text-center text-destructive">
+                  Failed to load tickets. Please try again.
+                </TableCell>
+              </TableRow>
+            )}
+
+            {/* -- Empty state -- */}
+            {!isLoading && !isError && tickets.length === 0 && (
               <TableRow>
                 <TableCell colSpan={COLUMNS.length} className="p-8 text-center text-muted-foreground">
                   No tickets found
                 </TableCell>
               </TableRow>
-            ) : (
-              tickets.map((ticket) => (
-                <TableRow key={ticket.id} className="relative cursor-pointer">
-                  <TableCell className="max-w-55 truncate font-medium">{ticket.title}</TableCell>
-                  <TableCell><StatusBadge status={ticket.priority} /></TableCell>
-                  <TableCell><StatusBadge status={ticket.status} /></TableCell>
-                  <TableCell className="text-muted-foreground">{ticket.reportedBy?.name ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{ticket.assignedTo?.name ?? "Unassigned"}</TableCell>
-                  <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(ticket.createdAt)}</TableCell>
-                  <td className="absolute inset-0 p-0">
-                    <Link href={`/tickets/${ticket.id}`} className="block w-full h-full" />
-                  </td>
-                </TableRow>
-              ))
             )}
+
+            {/* -- Data rows -- */}
+            {!isLoading && !isError && tickets.map((ticket) => (
+              <TableRow key={ticket.id} className="relative cursor-pointer">
+                <TableCell className="max-w-55 truncate font-medium">{ticket.title}</TableCell>
+                <TableCell><StatusBadge status={ticket.priority} /></TableCell>
+                <TableCell><StatusBadge status={ticket.status} /></TableCell>
+                <TableCell className="text-muted-foreground">{ticket.reportedBy?.name ?? "-"}</TableCell>
+                <TableCell className="text-muted-foreground">{ticket.assignedTo?.name ?? "Unassigned"}</TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(ticket.createdAt)}</TableCell>
+                <td className="absolute inset-0 p-0">
+                  <Link href={`/tickets/${ticket.id}`} className="block w-full h-full" />
+                </td>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </div>
