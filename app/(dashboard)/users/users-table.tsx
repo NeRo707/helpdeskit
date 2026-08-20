@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,59 +20,49 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/format';
-import type { User, Role } from '@/types/api';
+import type { TRole } from '@/types/api';
+import { useUsers, useUpdateUserRole, useToggleUserActive } from '@/hooks/use-users';
 
 interface UsersTableProps {
-  users: User[];
+  /** Passed from the server page - used to protect the current user from self-modification */
   currentUserId: string;
 }
 
-export function UsersTable({ users, currentUserId }: UsersTableProps) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
+// Self-fetching: no users prop needed anymore
+export function UsersTable({ currentUserId }: UsersTableProps) {
+  const { data: users = [], isPending, isError } = useUsers();
+  const updateRole = useUpdateUserRole();
+  const toggleActive = useToggleUserActive();
 
-  const handleRoleChange = async (userId: string, newRole: Role) => {
-    try {
-      const res = await fetch(`/api/users/${userId}/role`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to update role');
-      }
-
-      toast.success('Role updated');
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update role');
-    }
+  const handleRoleChange = (userId: string, newRole: TRole) => {
+    updateRole.mutate(
+      { id: userId, role: newRole },
+      {
+        onSuccess: () => toast.success('Role updated'),
+        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to update role'),
+      },
+    );
   };
 
-  const handleDeactivate = async (targetUser: User) => {
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/users/${targetUser.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to deactivate user');
-      }
-
-      toast.success('User deactivated');
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to deactivate user');
-    } finally {
-      setLoading(false);
-    }
+  const handleDeactivate = (userId: string, isActive: boolean) => {
+    toggleActive.mutate(
+      { id: userId, isActive: !isActive },
+      {
+        onSuccess: () => toast.success(isActive ? 'User deactivated' : 'User reactivated'),
+        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to update user'),
+      },
+    );
   };
+
+  if (isError) {
+    return (
+      <div className="rounded border border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">
+        Failed to load users. Please refresh.
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-x-auto rounded border border-border bg-card">
@@ -90,15 +78,23 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {isPending && Array.from({ length: 4 }).map((_, i) => (
+            <tr key={i} className="border-b border-border">
+              {Array.from({ length: 6 }).map((_, j) => (
+                <td key={j} className="p-3"><Skeleton className="h-4 w-full" /></td>
+              ))}
+            </tr>
+          ))}
+
+          {!isPending && users.map((user) => (
             <tr key={user.id} className="border-b border-border">
-              <td className="p-3 font-medium">{user.name ?? '—'}</td>
+              <td className="p-3 font-medium">{user.name ?? '-'}</td>
               <td className="p-3 text-muted-foreground">{user.email}</td>
               <td className="p-3">
                 <Select
                   value={user.role}
-                  onValueChange={(value) => handleRoleChange(user.id, value as Role)}
-                  disabled={user.id === currentUserId}
+                  onValueChange={(value) => handleRoleChange(user.id, value as TRole)}
+                  disabled={user.id === currentUserId || updateRole.isPending}
                 >
                   <SelectTrigger className="h-7 w-[130px] text-xs">
                     <SelectValue />
@@ -132,23 +128,24 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
                         variant="ghost"
                         size="sm"
                         className="text-xs text-destructive"
-                        disabled={!user.isActive}
+                        disabled={toggleActive.isPending}
                       >
-                        Deactivate
+                        {user.isActive ? 'Deactivate' : 'Reactivate'}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Confirm</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to deactivate {user.name ?? user.email}?
+                          Are you sure you want to {user.isActive ? 'deactivate' : 'reactivate'}{' '}
+                          {user.name ?? user.email}?
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => void handleDeactivate(user)}
-                          disabled={loading}
+                          onClick={() => handleDeactivate(user.id, user.isActive)}
+                          disabled={toggleActive.isPending}
                         >
                           Confirm
                         </AlertDialogAction>
@@ -159,13 +156,14 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
               </td>
             </tr>
           ))}
-          {users.length === 0 ? (
+
+          {!isPending && users.length === 0 && (
             <tr>
               <td colSpan={6} className="p-8 text-center text-muted-foreground">
                 No users found
               </td>
             </tr>
-          ) : null}
+          )}
         </tbody>
       </table>
     </div>

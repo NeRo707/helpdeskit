@@ -2,19 +2,20 @@
 
 import { useTransition } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import type { TUser } from "@/types/api";
+// Read user from Zustand - no more prop drilling!
+// The server layout bootstrapped this store via <Providers initialUser={user}>.
+import { useCurrentUser } from "@/stores/auth-store";
 
 interface DashboardLayoutClientProps {
-  user: TUser;
   logoutAction: () => Promise<void>;
   children: React.ReactNode;
 }
 
 export function DashboardLayoutClient({
-  user,
   logoutAction,
   children,
 }: DashboardLayoutClientProps) {
+  const user = useCurrentUser();
   const [, startTransition] = useTransition();
 
   const handleLogout = () => {
@@ -22,6 +23,9 @@ export function DashboardLayoutClient({
       logoutAction();
     });
   };
+
+  // Guard: user is null before Providers hydrates (very briefly on first paint)
+  if (!user) return null;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -32,3 +36,4 @@ export function DashboardLayoutClient({
     </div>
   );
 }
+

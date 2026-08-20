@@ -2,99 +2,108 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { TUser } from "@/types/api";
 
-const ACCESS_TOKEN_MAX_AGE = 15 * 60;
-const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
+const BACKEND_URL = process.env.BACKEND_URL!;
+const TOKEN_COOKIE = "accessToken";
+const MAX_AGE = 60 * 60 * 2; // 2 hours – matches backend JWT expiry
 
-function splitSetCookieHeader(setCookieHeader: string): string[] {
-  return setCookieHeader
-    .split(/,(?=[^;\s]+=)/g)
-    .map((part) => part.trim())
-    .filter(Boolean);
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function getToken(): Promise<string | undefined> {
+  return (await cookies()).get(TOKEN_COOKIE)?.value;
 }
 
-function extractSetCookies(res: Response): string[] {
-  if (!res?.headers) return [];
-  const withGetSetCookie = res.headers as Headers & {
-    getSetCookie?: () => string[];
-  };
-  if (typeof withGetSetCookie.getSetCookie === "function") {
-    const values = withGetSetCookie.getSetCookie();
-    if (values.length > 0) return values;
-  }
-
-  const combined = res.headers.get("set-cookie");
-  if (!combined) return [];
-  return splitSetCookieHeader(combined);
+async function saveToken(token: string) {
+  (await cookies()).set(TOKEN_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: MAX_AGE,
+  });
 }
 
-async function setAuthCookiesFromResponse(res: Response) {
-  const cookieStore = await cookies();
-  const setCookies = extractSetCookies(res);
-
-  for (const cookieString of setCookies) {
-    const [nameValue] = cookieString.split(";");
-    if (!nameValue) continue;
-
-    const eqIndex = nameValue.indexOf("=");
-    if (eqIndex <= 0) continue;
-
-    const name = nameValue.slice(0, eqIndex).trim();
-    const value = nameValue.slice(eqIndex + 1).trim();
-    if (!name) continue;
-
-    if (name === "accessToken") {
-      cookieStore.set(name, value, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        maxAge: ACCESS_TOKEN_MAX_AGE,
-      });
-      continue;
-    }
-
-    if (name === "refreshToken") {
-      cookieStore.set(name, value, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        maxAge: REFRESH_TOKEN_MAX_AGE,
-      });
-    }
-  }
+async function clearToken() {
+  (await cookies()).delete(TOKEN_COOKIE);
 }
 
-export async function getMe(): Promise<TUser | null> {
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+/**
+ * Fetch the current user via /auth/me.
+ * Sends the stored JWT as a Bearer token (backend uses JwtBearer, not cookie auth).
+ */
+export async function getMe() {
   try {
-    const cookieStore = await cookies();
-    const meRes = await fetch(`${process.env.BACKEND_URL}/auth/me`, {
-      headers: { cookie: cookieStore.toString() },
+    const token = await getToken();
+    if (!token) return null;
+
+    const res = await fetch(`${BACKEND_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
 
-    if (meRes.ok) {
-      return meRes.json();
-    }
+    if (!res.ok) return null;
 
-    return null;
+    // Backend returns { id, name, email, role, isActive }
+    return res.json();
   } catch (err) {
-    console.error("Error fetching user info:", err);
+    console.error("getMe error:", err);
     return null;
   }
 }
 
-export async function loginAction(email: string, password: string) {
-  const res: Response = await authFetch("/auth/login", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+/**
+ * Authenticated fetch helper for server actions / server components.
+ * Automatically attaches the Bearer token and redirects to /login on 401.
+ */
+export async function authFetch(path: string, options?: RequestInit): Promise<Response> {
+  const token = await getToken();
+  const { headers: optionHeaders, ...restOptions } = options ?? {};
+
+  const res = await fetch(`${BACKEND_URL}${path}`, {
+    cache: "no-store",
+    ...restOptions,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(optionHeaders as Record<string, string>),
+    },
   });
 
-  await setAuthCookiesFromResponse(res);
+  if (res.status === 401) {
+    redirect("/login");
+  }
+
+  if (!res.ok && res.status >= 500) {
+    throw new Error(`API error ${res.status}: ${path}`);
+  }
+
+  return res;
+}
+
+// ─── Auth Actions ────────────────────────────────────────────────────────────
+
+export async function loginAction(email: string, password: string) {
+  const res = await fetch(`${BACKEND_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: "Login failed" }));
+    throw new Error(error.message ?? "Login failed");
+  }
+
+  // Backend returns { accessToken, user } in the JSON body
+  const data = await res.json();
+  const token: string = data.accessToken;
+
+  if (!token) throw new Error("No token received from server");
+
+  await saveToken(token);
+  redirect("/dashboard");
 }
 
 export async function registerAction(
@@ -102,46 +111,41 @@ export async function registerAction(
   email: string,
   password: string,
 ) {
-  const res = await fetch(`${process.env.BACKEND_URL}/auth/register`, {
+  const res = await fetch(`${BACKEND_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password }),
+    cache: "no-store",
   });
+
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Registration failed");
+    const err = await res.json().catch(() => ({ message: "Registration failed" }));
+    throw new Error(err.message ?? "Registration failed");
   }
 
-  await setAuthCookiesFromResponse(res);
+  const data = await res.json();
+  const token: string = data.accessToken;
+
+  if (!token) throw new Error("No token received from server");
+
+  await saveToken(token);
   redirect("/dashboard");
 }
 
 export async function logoutAction() {
-  const cookieStore = await cookies();
-  await fetch(`${process.env.BACKEND_URL}/auth/logout`, {
-    method: "POST",
-    headers: { cookie: cookieStore.toString() },
-  });
-  cookieStore.delete("accessToken");
-  cookieStore.delete("refreshToken");
+  const token = await getToken();
+
+  try {
+    if (token) {
+      await fetch(`${BACKEND_URL}/auth/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+  } catch {
+    console.error("Failed to notify backend of logout, clearing local token anyway");
+  }
+
+  await clearToken();
   redirect("/login");
-}
-
-export async function authFetch(path: string, options?: RequestInit): Promise<Response> {
-  const cookieStore = await cookies();
-  const { headers: optionHeaders, ...restOptions } = options ?? {};
-
-  const res = await fetch(`${process.env.BACKEND_URL}${path}`, {
-    cache: 'no-store',
-    ...restOptions,
-    headers: {
-      cookie: cookieStore.toString(),
-      ...(optionHeaders as Record<string, string>),
-    },
-  });
-
-  if (res.status > 400 && res.status < 500) redirect('/login');
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
-
-  return res;
 }

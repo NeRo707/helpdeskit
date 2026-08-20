@@ -7,6 +7,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Server-side auth guard - redirect unauthenticated users before rendering
   const user = await getMe();
 
   if (!user) {
@@ -14,7 +15,8 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardLayoutClient user={user} logoutAction={logoutAction}>
+    // Note: user prop removed - DashboardLayoutClient reads from Zustand store
+    <DashboardLayoutClient logoutAction={logoutAction}>
       {children}
     </DashboardLayoutClient>
   );
