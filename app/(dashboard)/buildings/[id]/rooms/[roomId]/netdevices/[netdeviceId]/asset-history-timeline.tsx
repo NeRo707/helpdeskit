@@ -126,8 +126,8 @@ export function AssetHistoryTimeline({
           return (
             <p key={field}>
               <span className="font-medium">{field}</span>:{" "}
-              {String(typedValue.before ?? "—")} →{" "}
-              {String(typedValue.after ?? "—")}
+              {String(typedValue.before ?? "-")} →{" "}
+              {String(typedValue.after ?? "-")}
             </p>
           );
         })}

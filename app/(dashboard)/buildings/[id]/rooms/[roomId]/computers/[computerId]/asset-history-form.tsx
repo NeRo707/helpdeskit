@@ -1,45 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useAddAssetHistory } from "@/hooks/use-computers";
 
 const AssetHistoryForm = ({ computerId }: { computerId: string }) => {
-  const router = useRouter();
-  // Renamed 'body' to 'action' to match backend requirements
   const [action, setAction] = useState("");
-  const [loading, setLoading] = useState(false);
+  const addHistory = useAddAssetHistory(computerId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!action.trim()) return;
 
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/computers/${computerId}/history`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // Sending 'action' now matches your API validation rules
-        body: JSON.stringify({ action }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to add comment");
-      }
-
-      toast.success("History added");
-      setAction("");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add history");
-    } finally {
-      setLoading(false);
-    }
+    addHistory.mutate(
+      { action },
+      {
+        onSuccess: () => {
+          toast.success("History added");
+          setAction("");
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to add history"),
+      },
+    );
   };
 
   return (
@@ -52,8 +38,13 @@ const AssetHistoryForm = ({ computerId }: { computerId: string }) => {
           rows={2}
           className="flex-1 h-24 bg-card!"
         />
-        <Button className="w-24 h-24" type="submit" size="icon" disabled={loading || !action.trim()}>
-            <Send className="size-7" />
+        <Button
+          className="w-24 h-24"
+          type="submit"
+          size="icon"
+          disabled={addHistory.isPending || !action.trim()}
+        >
+          <Send className="size-7" />
         </Button>
       </div>
     </form>

@@ -1,5 +1,17 @@
 'use client';
 
+/**
+ * RoomsTable - receives rooms from the parent's useBuilding() cache.
+ * Mutations (create/update/delete) invalidate that same cache key,
+ * which causes the parent to re-render with fresh data automatically.
+ *
+ * KEY CONCEPT - Cache as the single source of truth:
+ * The rooms list lives inside the building detail query. When we create/
+ * update/delete a room, we don't need to maintain a separate rooms state -
+ * we just invalidate queryKeys.buildings.detail(buildingId) and React Query
+ * re-fetches the building (with its rooms array) in the background.
+ */
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -16,45 +28,44 @@ import {
 import { FieldGroup, Field, FieldLabel } from '@/components/ui/field';
 import { DataTable, type Column } from '@/components/data-table';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import type { Room } from '@/types/api';
+import type { TRoom } from '@/types/api';
+import { useCreateRoom, useUpdateRoom, useDeleteRoom } from '@/hooks/use-buildings';
 
 interface RoomsTableProps {
   buildingId: string;
-  rooms: Room[];
+  rooms: TRoom[];
   isAdmin: boolean;
 }
 
 export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editRoom, setEditRoom] = useState<Room | null>(null);
-  const [deleteRoom, setDeleteRoom] = useState<Room | null>(null);
+  const [editRoom, setEditRoom] = useState<TRoom | null>(null);
+  const [deleteRoom, setDeleteRoom] = useState<TRoom | null>(null);
   const [name, setName] = useState('');
   const [floor, setFloor] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const columns: Column<Room>[] = [
+  // Mutations - all invalidate buildings.detail(buildingId) on success
+  const createRoom = useCreateRoom(buildingId);
+  const updateRoom = useUpdateRoom(buildingId);
+  const deleteRoomMutation = useDeleteRoom(buildingId);
+
+  const isPending = createRoom.isPending || updateRoom.isPending || deleteRoomMutation.isPending;
+
+  const columns: Column<TRoom>[] = [
     { header: 'Name', accessor: 'name' },
-    { header: 'Floor', accessor: (row) => row.floor || '—' },
+    { header: 'Floor', accessor: (row) => row.floor || '-' },
     { header: 'Computers', accessor: (row) => row._count?.computers ?? 0 },
     ...(isAdmin
       ? [
           {
             header: 'Actions',
-            accessor: (row: Room) => (
+            accessor: (row: TRoom) => (
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEdit(row)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(row)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDeleteRoom(row)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setDeleteRoom(row)}>
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
@@ -64,11 +75,11 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
       : []),
   ];
 
-  const handleRowClick = (room: Room) => {
+  const handleRowClick = (room: TRoom) => {
     router.push(`/buildings/${buildingId}/rooms/${room.id}`);
   };
 
-  const handleEdit = (room: Room) => {
+  const handleEdit = (room: TRoom) => {
     setEditRoom(room);
     setName(room.name);
     setFloor(room.floor || '');
@@ -82,62 +93,32 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
     setFloor('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    const data = { name, floor: floor || null };
 
-    try {
-      const url = editRoom
-        ? `/api/buildings/${buildingId}/rooms/${editRoom.id}`
-        : `/api/buildings/${buildingId}/rooms`;
-      const method = editRoom ? 'PATCH' : 'POST';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          floor: floor || null,
-        }),
+    if (editRoom) {
+      updateRoom.mutate(
+        { roomId: editRoom.id, data },
+        {
+          onSuccess: () => { toast.success('Room updated'); handleClose(); },
+          onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to update room'),
+        },
+      );
+    } else {
+      createRoom.mutate(data, {
+        onSuccess: () => { toast.success('Room created'); handleClose(); },
+        onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to create room'),
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to save room');
-      }
-
-      toast.success(editRoom ? 'Room updated successfully' : 'Room created successfully');
-      handleClose();
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to save room');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deleteRoom) return;
-    setLoading(true);
-
-    try {
-      const res = await fetch(`/api/buildings/${buildingId}/rooms/${deleteRoom.id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to delete room');
-      }
-
-      toast.success('Room deleted successfully');
-      setDeleteRoom(null);
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete room');
-    } finally {
-      setLoading(false);
-    }
+    deleteRoomMutation.mutate(deleteRoom.id, {
+      onSuccess: () => { toast.success('Room deleted'); setDeleteRoom(null); },
+      onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to delete room'),
+    });
   };
 
   return (
@@ -176,8 +157,8 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
                       placeholder="Floor (optional)"
                     />
                   </Field>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Saving...' : editRoom ? 'Update Room' : 'Create Room'}
+                  <Button type="submit" className="w-full" disabled={isPending}>
+                    {isPending ? 'Saving...' : editRoom ? 'Update Room' : 'Create Room'}
                   </Button>
                 </FieldGroup>
               </form>
@@ -185,7 +166,6 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
           </Dialog>
         </div>
       )}
-
 
       <DataTable
         columns={columns}

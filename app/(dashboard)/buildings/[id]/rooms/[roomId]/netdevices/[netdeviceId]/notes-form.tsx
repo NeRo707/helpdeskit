@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { TNetworkDevice } from "@/types/api";
+import { useUpdateNetworkDevice } from "@/hooks/use-netdevices";
 
 const NotesForm = ({
   buildingId,
@@ -19,34 +19,23 @@ const NotesForm = ({
   entityId: string;
   currentNotes: string | null;
 }) => {
-  const router = useRouter();
   const [notes, setNotes] = useState(currentNotes ?? "");
-  const [loading, setLoading] = useState(false);
+  const updateDevice = useUpdateNetworkDevice(buildingId, roomId, entityId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    setLoading(true);
-
-    try {
-      const res = await await fetch(`/api/buildings/${buildingId}/rooms/${roomId}/netdevices/${entityId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to save notes");
+    updateDevice.mutate(
+      { notes },
+      {
+        onSuccess: () => {
+          toast.success("Notes saved");
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Failed to save notes");
+        },
       }
-
-      toast.success("Notes saved");
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save notes");
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   return (
@@ -63,7 +52,7 @@ const NotesForm = ({
           className="w-24 h-24"
           type="submit"
           size="icon"
-          disabled={loading || notes === (currentNotes ?? "")}
+          disabled={updateDevice.isPending || notes === (currentNotes ?? "")}
         >
           <Save className="size-7" />
         </Button>

@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * ComputersTable - receives computers from the parent's useRoom() cache.
+ * Mutations use useUpsertComputer which invalidates the room query on success,
+ * triggering an automatic background refetch - no router.refresh() needed.
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -24,6 +30,7 @@ import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { DataTable, type Column } from "@/components/data-table";
 import { AssetStatusBadge } from "@/components/asset-status-badge";
 import type { TComputer, TAssetStatus } from "@/types/api";
+import { useUpsertComputer } from "@/hooks/use-buildings";
 
 interface ComputersTableProps {
   buildingId: string;
@@ -41,7 +48,6 @@ export function ComputersTable({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editComputer, setEditComputer] = useState<TComputer | null>(null);
-  const [loading, setLoading] = useState(false);
 
   // Form state
   const [hostname, setHostname] = useState("");
@@ -50,10 +56,13 @@ export function ComputersTable({
   const [os, setOs] = useState("");
   const [status, setStatus] = useState<TAssetStatus>("ACTIVE");
 
+  // Single mutation covers both create (no computerId) and update (with computerId)
+  const upsert = useUpsertComputer(buildingId, roomId);
+
   const columns: Column<TComputer>[] = [
     { header: "Hostname", accessor: "hostname" },
-    { header: "IP Address", accessor: (row) => row.ipAddress || "—" },
-    { header: "OS", accessor: (row) => row.os || "—" },
+    { header: "IP Address", accessor: (row) => row.ipAddress || "-" },
+    { header: "OS", accessor: (row) => row.os || "-" },
     {
       header: "Status",
       accessor: (row) => <AssetStatusBadge status={row.status} />,
@@ -105,43 +114,28 @@ export function ComputersTable({
     setStatus("ACTIVE");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    try {
-      const url = editComputer
-        ? `/api/buildings/${buildingId}/rooms/${roomId}/computers/${editComputer.id}`
-        : `/api/buildings/${buildingId}/rooms/${roomId}/computers`;
-      const method = editComputer ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+    upsert.mutate(
+      {
+        computerId: editComputer?.id,
+        data: {
           hostname,
           ipAddress: ipAddress || null,
           macAddress: macAddress || null,
           os: os || null,
           status,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to save computer");
-      }
-
-      toast.success(editComputer ? "Computer updated" : "Computer created");
-      handleClose();
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to save computer",
-      );
-    } finally {
-      setLoading(false);
-    }
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(editComputer ? "Computer updated" : "Computer created");
+          handleClose();
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to save computer"),
+      },
+    );
   };
 
   return (
@@ -164,9 +158,7 @@ export function ComputersTable({
               <form onSubmit={handleSubmit}>
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="computer-hostname">
-                      Hostname
-                    </FieldLabel>
+                    <FieldLabel htmlFor="computer-hostname">Hostname</FieldLabel>
                     <Input
                       id="computer-hostname"
                       value={hostname}
@@ -194,9 +186,7 @@ export function ComputersTable({
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="computer-os">
-                      Operating System
-                    </FieldLabel>
+                    <FieldLabel htmlFor="computer-os">Operating System</FieldLabel>
                     <Input
                       id="computer-os"
                       value={os}
@@ -216,17 +206,13 @@ export function ComputersTable({
                       <SelectContent>
                         <SelectItem value="ACTIVE">Active</SelectItem>
                         <SelectItem value="INACTIVE">Inactive</SelectItem>
-                        <SelectItem value="UNDER_MAINTENANCE">
-                          Under Maintenance
-                        </SelectItem>
-                        <SelectItem value="DECOMMISSIONED">
-                          Decommissioned
-                        </SelectItem>
+                        <SelectItem value="UNDER_MAINTENANCE">Under Maintenance</SelectItem>
+                        <SelectItem value="DECOMMISSIONED">Decommissioned</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Saving..." : editComputer ? "Update" : "Create"}
+                  <Button type="submit" className="w-full" disabled={upsert.isPending}>
+                    {upsert.isPending ? "Saving..." : editComputer ? "Update" : "Create"}
                   </Button>
                 </FieldGroup>
               </form>

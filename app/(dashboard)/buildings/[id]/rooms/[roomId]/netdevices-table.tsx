@@ -24,7 +24,7 @@ import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { DataTable, type Column } from "@/components/data-table";
 import { AssetStatusBadge } from "@/components/asset-status-badge";
 import type { TAssetStatus, TNetworkDevice } from "@/types/api";
-import { Row } from "react-day-picker";
+import { useUpsertNetworkDevice } from "@/hooks/use-buildings";
 
 interface NetworkDevicesTableProps {
   buildingId: string;
@@ -41,29 +41,31 @@ export function NetworkDevicesTable({
 }: NetworkDevicesTableProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editNetworkDevice, setEditNetworkDevice] =
-    useState<TNetworkDevice | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [editDevice, setEditDevice] = useState<TNetworkDevice | null>(null);
 
   // Form state
   const [hostname, setHostname] = useState("");
   const [ipAddress, setIpAddress] = useState("");
   const [macAddress, setMacAddress] = useState("");
-  const [os, setOs] = useState("");
+  const [type, setType] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
   const [status, setStatus] = useState<TAssetStatus>("ACTIVE");
 
+  const upsert = useUpsertNetworkDevice(buildingId, roomId);
+
   const columns: Column<TNetworkDevice>[] = [
-    { header: "Type", accessor: (row) => row.type || "—" },
-    { header: "Brand", accessor: (row) => row.brand || "—" },
-    { header: "Model", accessor: (row) => row.model || "—" },
+    { header: "Type", accessor: (row) => row.type || "-" },
+    { header: "Brand", accessor: (row) => row.brand || "-" },
+    { header: "Model", accessor: (row) => row.model || "-" },
     {
       header: "Status",
       accessor: (row) => <AssetStatusBadge status={row.status} />,
     },
-    { header: "Hostname", accessor: (row) => row.hostname || "—" },
-    { header: "IP Address", accessor: (row) => row.ipAddress || "—" },
-    { header: "Serial Number", accessor: (row) => row.serialNumber || "—" },
-
+    { header: "Hostname", accessor: (row) => row.hostname || "-" },
+    { header: "IP Address", accessor: (row) => row.ipAddress || "-" },
+    { header: "Serial Number", accessor: (row) => row.serialNumber || "-" },
     ...(canEdit
       ? [
           {
@@ -84,70 +86,63 @@ export function NetworkDevicesTable({
       : []),
   ];
 
-  const handleRowClick = (networkDevice: TNetworkDevice) => {
+  const handleRowClick = (device: TNetworkDevice) => {
     router.push(
-      `/buildings/${buildingId}/rooms/${roomId}/netdevices/${networkDevice.id}`,
+      `/buildings/${buildingId}/rooms/${roomId}/netdevices/${device.id}`,
     );
   };
 
-  const handleEdit = (networkDevice: TNetworkDevice) => {
-    setEditNetworkDevice(networkDevice);
-    setHostname(networkDevice.hostname || "");
-    setIpAddress(networkDevice.ipAddress || "");
-    setMacAddress(networkDevice.macAddress || "");
-    setStatus(networkDevice.status);
+  const handleEdit = (device: TNetworkDevice) => {
+    setEditDevice(device);
+    setHostname(device.hostname || "");
+    setIpAddress(device.ipAddress || "");
+    setMacAddress(device.macAddress || "");
+    setType(device.type || "");
+    setBrand(device.brand || "");
+    setModel(device.model || "");
+    setSerialNumber(device.serialNumber || "");
+    setStatus(device.status);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setEditNetworkDevice(null);
+    setEditDevice(null);
     setHostname("");
     setIpAddress("");
     setMacAddress("");
-    setOs("");
+    setType("");
+    setBrand("");
+    setModel("");
+    setSerialNumber("");
     setStatus("ACTIVE");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    try {
-      const url = editNetworkDevice
-        ? `/api/buildings/${buildingId}/rooms/${roomId}/netdevices/${editNetworkDevice.id}`
-        : `/api/buildings/${buildingId}/rooms/${roomId}/netdevices`;
-      const method = editNetworkDevice ? "PATCH" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+    upsert.mutate(
+      {
+        deviceId: editDevice?.id,
+        data: {
           hostname,
           ipAddress: ipAddress || null,
           macAddress: macAddress || null,
-          os: os || null,
+          type: type || null,
+          brand: brand || null,
+          model: model || null,
+          serialNumber: serialNumber || null,
           status,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to save network device");
-      }
-
-      toast.success(
-        editNetworkDevice ? "Network device updated" : "Network device created",
-      );
-      handleClose();
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to save network device",
-      );
-    } finally {
-      setLoading(false);
-    }
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(editDevice ? "Network device updated" : "Network device created");
+          handleClose();
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : "Failed to save network device"),
+      },
+    );
   };
 
   return (
@@ -164,19 +159,42 @@ export function NetworkDevicesTable({
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {editNetworkDevice
-                    ? "Edit Network Device"
-                    : "Add New Network Device"}
+                  {editDevice ? "Edit Network Device" : "Add New Network Device"}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="network-device-hostname">
-                      Hostname
-                    </FieldLabel>
+                    <FieldLabel htmlFor="nd-type">Type</FieldLabel>
                     <Input
-                      id="network-device-hostname"
+                      id="nd-type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      placeholder="e.g., Switch, Router (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="nd-brand">Brand</FieldLabel>
+                    <Input
+                      id="nd-brand"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      placeholder="e.g., Cisco (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="nd-model">Model</FieldLabel>
+                    <Input
+                      id="nd-model"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder="Model (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="nd-hostname">Hostname</FieldLabel>
+                    <Input
+                      id="nd-hostname"
                       value={hostname}
                       onChange={(e) => setHostname(e.target.value)}
                       placeholder="Hostname"
@@ -184,65 +202,53 @@ export function NetworkDevicesTable({
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="network-device-ip">
-                      IP Address
-                    </FieldLabel>
+                    <FieldLabel htmlFor="nd-ip">IP Address</FieldLabel>
                     <Input
-                      id="network-device-ip"
+                      id="nd-ip"
                       value={ipAddress}
                       onChange={(e) => setIpAddress(e.target.value)}
                       placeholder="IP Address (optional)"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="network-device-mac">
-                      MAC Address
-                    </FieldLabel>
+                    <FieldLabel htmlFor="nd-mac">MAC Address</FieldLabel>
                     <Input
-                      id="network-device-mac"
+                      id="nd-mac"
                       value={macAddress}
                       onChange={(e) => setMacAddress(e.target.value)}
                       placeholder="MAC Address (optional)"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="network-device-os">
-                      Operating System
-                    </FieldLabel>
+                    <FieldLabel htmlFor="nd-serial">Serial Number</FieldLabel>
                     <Input
-                      id="network-device-os"
-                      value={os}
-                      onChange={(e) => setOs(e.target.value)}
-                      placeholder="e.g., Windows 11, Ubuntu 22.04"
+                      id="nd-serial"
+                      value={serialNumber}
+                      onChange={(e) => setSerialNumber(e.target.value)}
+                      placeholder="Serial Number (optional)"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="network-device-status">
-                      Status
-                    </FieldLabel>
+                    <FieldLabel htmlFor="nd-status">Status</FieldLabel>
                     <Select
                       value={status}
                       onValueChange={(v) => setStatus(v as TAssetStatus)}
                     >
-                      <SelectTrigger id="network-device-status">
+                      <SelectTrigger id="nd-status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ACTIVE">Active</SelectItem>
                         <SelectItem value="INACTIVE">Inactive</SelectItem>
-                        <SelectItem value="UNDER_MAINTENANCE">
-                          Under Maintenance
-                        </SelectItem>
-                        <SelectItem value="DECOMMISSIONED">
-                          Decommissioned
-                        </SelectItem>
+                        <SelectItem value="UNDER_MAINTENANCE">Under Maintenance</SelectItem>
+                        <SelectItem value="DECOMMISSIONED">Decommissioned</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading
+                  <Button type="submit" className="w-full" disabled={upsert.isPending}>
+                    {upsert.isPending
                       ? "Saving..."
-                      : editNetworkDevice
+                      : editDevice
                         ? "Update"
                         : "Create"}
                   </Button>

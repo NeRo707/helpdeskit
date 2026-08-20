@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TAssetHistory } from "@/types/api";
+import { useDeleteAssetHistory } from "@/hooks/use-computers";
 
 interface AssetHistoryTimelineProps {
   computerId: string;
@@ -28,10 +28,10 @@ export function AssetHistoryTimeline({
   history,
   canEdit,
 }: AssetHistoryTimelineProps) {
-  const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [deleting, setDeleting] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+
+  const deleteHistory = useDeleteAssetHistory(computerId);
 
   const allSelected = useMemo(
     () => history.length > 0 && selectedIds.length === history.length,
@@ -58,38 +58,25 @@ export function AssetHistoryTimeline({
     setSelectedIds(history.map((entry) => entry.id));
   };
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = () => {
     if (selectedIds.length === 0) {
       toast.error("Select at least one history record");
       return;
     }
 
-    setDeleting(true);
-
-    try {
-      const response = await fetch(`/api/computers/${computerId}/history`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: selectedIds }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to delete selected history");
-      }
-
-      toast.success("Selected history deleted");
-      setSelectedIds([]);
-      router.refresh();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to delete selected history",
-      );
-    } finally {
-      setDeleting(false);
-    }
+    deleteHistory.mutate(selectedIds, {
+      onSuccess: () => {
+        toast.success("Selected history deleted");
+        setSelectedIds([]);
+      },
+      onError: (error) => {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Failed to delete selected history",
+        );
+      },
+    });
   };
 
   const toggleExpanded = (id: string) => {
@@ -126,8 +113,8 @@ export function AssetHistoryTimeline({
           return (
             <p key={field}>
               <span className="font-medium">{field}</span>:{" "}
-              {String(typedValue.before ?? "—")} →{" "}
-              {String(typedValue.after ?? "—")}
+              {String(typedValue.before ?? "-")} →{" "}
+              {String(typedValue.after ?? "-")}
             </p>
           );
         })}
@@ -179,11 +166,11 @@ export function AssetHistoryTimeline({
             <Button
               variant="destructive"
               size="sm"
-              disabled={deleting || selectedIds.length === 0}
+              disabled={deleteHistory.isPending || selectedIds.length === 0}
               onClick={handleDeleteSelected}
               className="cursor-pointer"
             >
-              {deleting
+              {deleteHistory.isPending
                 ? "Deleting..."
                 : `Delete Selected (${selectedIds.length})`}
             </Button>

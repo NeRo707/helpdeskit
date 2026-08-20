@@ -76,9 +76,9 @@ export function PeripheralsSection({
       header: "Type",
       accessor: (row) => row.type.replace("_", " "),
     },
-    { header: "Brand", accessor: (row) => row.brand || "—" },
-    { header: "Model", accessor: (row) => row.model || "—" },
-    { header: "Serial Number", accessor: (row) => row.serialNumber || "—" },
+    { header: "Brand", accessor: (row) => row.brand || "-" },
+    { header: "Model", accessor: (row) => row.model || "-" },
+    { header: "Serial Number", accessor: (row) => row.serialNumber || "-" },
     {
       header: "Status",
       accessor: (row) => <AssetStatusBadge status={row.status} />,

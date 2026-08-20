@@ -25,69 +25,62 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import type { Building } from '@/types/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useBuildings } from '@/hooks/use-buildings';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api-client';
+import { queryKeys } from '@/lib/query-keys';
+import type { TBuilding } from '@/types/api';
 
 interface BuildingsTableProps {
-  buildings: Building[];
   isAdmin: boolean;
 }
 
-export function BuildingsTable({ buildings, isAdmin }: BuildingsTableProps) {
+// Self-fetching: no buildings prop needed anymore
+export function BuildingsTable({ isAdmin }: BuildingsTableProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: buildings = [], isPending, isError } = useBuildings();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/buildings', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, address: address || null }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to create building');
-      }
-
+  const createBuilding = useMutation({
+    mutationFn: (payload: { name: string; address: string | null }) =>
+      apiClient<TBuilding>('/buildings', { method: 'POST', body: JSON.stringify(payload) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.buildings.all() });
       toast.success('Building created successfully');
       setOpen(false);
       setName('');
       setAddress('');
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create building');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to create building'),
+  });
 
-  const handleDelete = async (buildingId: string) => {
-    try {
-      const res = await fetch(`/api/buildings/${buildingId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Failed to delete building');
-      }
-
+  const deleteBuilding = useMutation({
+    mutationFn: (id: string) => apiClient(`/buildings/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.buildings.all() });
       toast.success('Building deleted');
-      router.refresh();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete building');
-    }
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Failed to delete building'),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createBuilding.mutate({ name, address: address || null });
   };
 
   const labelClass = 'font-mono text-xs uppercase tracking-wider text-muted-foreground';
+
+  if (isError) {
+    return (
+      <div className="rounded border border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">
+        Failed to load buildings. Please refresh.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -112,8 +105,8 @@ export function BuildingsTable({ buildings, isAdmin }: BuildingsTableProps) {
                   <Label className={labelClass}>Address</Label>
                   <Input value={address} onChange={(e) => setAddress(e.target.value)} />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Creating...' : 'Create'}
+                <Button type="submit" className="w-full" disabled={createBuilding.isPending}>
+                  {createBuilding.isPending ? 'Creating...' : 'Create'}
                 </Button>
               </form>
             </DialogContent>
@@ -121,9 +114,19 @@ export function BuildingsTable({ buildings, isAdmin }: BuildingsTableProps) {
         </div>
       )}
 
-      {buildings.length === 0 ? (
+      {isPending && (
+        <div className="grid gap-4 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded border" />
+          ))}
+        </div>
+      )}
+
+      {!isPending && buildings.length === 0 && (
         <div className="py-12 text-center text-muted-foreground">No buildings yet</div>
-      ) : (
+      )}
+
+      {!isPending && buildings.length > 0 && (
         <div className="grid gap-4 md:grid-cols-3">
           {buildings.map((building) => (
             <div
@@ -150,12 +153,12 @@ export function BuildingsTable({ buildings, isAdmin }: BuildingsTableProps) {
                       variant="ghost"
                       size="sm"
                       className="absolute right-2 top-2 text-muted-foreground hover:text-destructive"
-                      onClick={(event) => event.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent onClick={(event) => event.stopPropagation()}>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Building</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -164,7 +167,12 @@ export function BuildingsTable({ buildings, isAdmin }: BuildingsTableProps) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(building.id)}>Delete</AlertDialogAction>
+                      <AlertDialogAction
+                        onClick={() => deleteBuilding.mutate(building.id)}
+                        disabled={deleteBuilding.isPending}
+                      >
+                        Delete
+                      </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
