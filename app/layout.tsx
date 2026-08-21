@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import { LayoutClient } from "./layout.client";
+import { Providers } from "./providers";
 import { getMe } from "@/actions/auth";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -49,7 +50,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // getMe() runs server-side once per page load to bootstrap the Zustand auth
+  // store. After this, all client components read user from useCurrentUser().
   const user = await getMe();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -57,9 +61,12 @@ export default async function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <NuqsAdapter>
-            <LayoutClient user={user}>
-              {children}
-            </LayoutClient>
+            {/* Providers sets up QueryClient + hydrates Zustand auth store */}
+            <Providers initialUser={user}>
+              <LayoutClient user={user}>
+                {children}
+              </LayoutClient>
+            </Providers>
           </NuqsAdapter>
           <Toaster position="top-right" theme="dark" />
         </ThemeProvider>

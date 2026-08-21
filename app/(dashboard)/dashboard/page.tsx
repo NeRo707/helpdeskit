@@ -1,32 +1,22 @@
 import { redirect } from "next/navigation";
 import { getMe } from "@/actions/auth";
-import { PageHeader } from "@/components/page-header";
-import type { TBuilding, TTicket } from "@/types/api";
-import { fetchAPI } from "@/lib/api";
-import StatsCards from "./_components/StatsCards";
-import { RecentTickets } from "./_components/RecentTickets";
-import { TicketStatusPieChart } from "./_components/TicketStatusPieChart";
-import { TicketsTrendLineChart } from "./_components/TicketsTrendLineChart";
+import { DashboardClient } from "./_components/DashboardClient";
 
+/**
+ * Server shell: handles auth guard & role redirect.
+ * All data fetching happens client-side via React Query in DashboardClient.
+ *
+ * KEY CONCEPT - Shell Pattern:
+ * Server pages in Next.js App Router are great for auth guards and SEO metadata,
+ * but they can't use React Query. The pattern is:
+ *   Server page  → auth check + redirect
+ *   Client component → useQuery for data, renders loading/error/data states
+ */
 export default async function DashboardPage() {
   const user = await getMe();
   if (!user) redirect("/login");
   if (user.role === "USER") redirect("/tickets/my");
 
-  const [buildings, tickets] = await Promise.all([
-    fetchAPI<TBuilding[]>("/buildings"),
-    fetchAPI<TTicket[]>("/tickets"),
-  ]);
-
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Dashboard" description="System overview" />
-      <StatsCards buildings={buildings} tickets={tickets} />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <TicketStatusPieChart tickets={tickets} />
-        <TicketsTrendLineChart tickets={tickets} />
-      </div>
-      <RecentTickets tickets={tickets} />
-    </div>
-  );
+  // No data fetching here! DashboardClient handles it with React Query.
+  return <DashboardClient />;
 }
