@@ -9,6 +9,10 @@ import { LayoutClient } from "./layout.client";
 import { Providers } from "./providers";
 import { getMe } from "@/actions/auth";
 
+// The root layout reads the request's httpOnly cookies to bootstrap the user.
+// It must always render per request rather than be considered for static output.
+export const dynamic = "force-dynamic";
+
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],

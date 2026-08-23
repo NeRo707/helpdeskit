@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { parseSetCookie, type Cookie } from "set-cookie-parser";
 
 const PUBLIC_PATHS = ["/login", "/register"];
 const TOKEN_COOKIE = "accessToken";
+const REFRESH_COOKIE = "refreshToken";
+const AUTH_COOKIES = new Set([TOKEN_COOKIE, REFRESH_COOKIE]);
+const BACKEND_URL = process.env.BACKEND_URL!;
 
 type TokenPayload = {
   exp?: number;
@@ -35,6 +39,42 @@ function isTokenValid(payload: TokenPayload | null): boolean {
   return true;
 }
 
+function authCookies(upstream: Response): Cookie[] {
+  return parseSetCookie(upstream).filter((cookie) => AUTH_COOKIES.has(cookie.name));
+}
+
+function applyAuthCookies(response: NextResponse, upstreamCookies: Cookie[]) {
+  for (const cookie of upstreamCookies) {
+    response.cookies.set(cookie.name, cookie.value, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: cookie.maxAge,
+    });
+  }
+}
+
+async function refreshSession(req: NextRequest) {
+  if (!req.cookies.get(REFRESH_COOKIE)?.value) return null;
+
+  try {
+    const upstream = await fetch(`${BACKEND_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { cookie: req.headers.get("cookie") ?? "" },
+      cache: "no-store",
+    });
+    if (!upstream.ok) return null;
+
+    const refreshedCookies = authCookies(upstream);
+    const accessToken = refreshedCookies.find((cookie) => cookie.name === TOKEN_COOKIE)?.value;
+    const payload = decodeToken(accessToken);
+    return isTokenValid(payload) ? { payload, refreshedCookies } : null;
+  } catch {
+    return null;
+  }
+}
+
 type RouteRule = {
   path: string;
   blockedRoles: string[];
@@ -42,7 +82,8 @@ type RouteRule = {
 };
 
 // Role-based route restrictions.
-// Users matching `blockedRoles` visiting `path` will be redirected to `redirectTo`.
+// Users matching `blockedRoles` visiting the exact `path` are redirected to
+// `redirectTo`. Nested pages (such as /tickets/my) have their own access rules.
 const ROLE_RULES: RouteRule[] = [
   { path: "/tickets", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
 ];
@@ -51,9 +92,18 @@ export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const token = req.cookies.get(TOKEN_COOKIE)?.value;
-  const payload = decodeToken(token);
+  let payload = decodeToken(token);
 
-  console.log("payload", payload);
+  // Refresh before rendering a protected page. Redirecting back to the same
+  // URL makes the new cookies available to the next server-component request.
+  if (!isTokenValid(payload)) {
+    const refreshed = await refreshSession(req);
+    if (refreshed) {
+      const response = NextResponse.redirect(req.nextUrl);
+      applyAuthCookies(response, refreshed.refreshedCookies);
+      return response;
+    }
+  }
 
   // Always allow public routes through, but redirect if already logged in
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
@@ -66,14 +116,15 @@ export async function proxy(req: NextRequest) {
   // No token or expired → redirect to login
   if (!isTokenValid(payload)) {
     const response = NextResponse.redirect(new URL("/login", req.url));
-    if (token) response.cookies.delete(TOKEN_COOKIE); // clear stale cookie
+    if (token) response.cookies.delete(TOKEN_COOKIE);
+    if (req.cookies.get(REFRESH_COOKIE)) response.cookies.delete(REFRESH_COOKIE);
     return response;
   }
 
   // Role-based routing
   for (const rule of ROLE_RULES) {
     if (
-      pathname.startsWith(rule.path) &&
+      pathname === rule.path &&
       payload?.role &&
       rule.blockedRoles.includes(payload.role)
     ) {
