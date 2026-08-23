@@ -19,6 +19,7 @@ import type { TRole, TUser } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useUIStore } from '@/stores/ui-store';
 
 interface AppSidebarProps {
   user: TUser;
@@ -68,7 +69,8 @@ const navItems: NavItem[] = [
 
 export function AppSidebar({ user, onLogout }: AppSidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const { sidebarOpen, toggleSidebar } = useUIStore();
+  const collapsed = !sidebarOpen;
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
 
@@ -139,7 +141,7 @@ export function AppSidebar({ user, onLogout }: AppSidebarProps) {
           variant="ghost"
           size="sm"
           className="w-full justify-start gap-3 text-muted-foreground"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleSidebar}
         >
           <ChevronLeft className={cn('h-4 w-4 shrink-0 transition-transform', collapsed && 'rotate-180')} />
           {!collapsed ? <span>Collapse</span> : null}
