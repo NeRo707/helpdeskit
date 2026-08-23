@@ -1,16 +1,10 @@
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getMe } from '@/actions/auth';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { MyTicketsTable } from './my-tickets-table';
 
-export default async function MyTicketsPage() {
-  const user = await getMe();
-
-  if (!user) redirect('/login');
-
+export default function MyTicketsPage() {
   return (
     <div className="space-y-4">
       <PageHeader

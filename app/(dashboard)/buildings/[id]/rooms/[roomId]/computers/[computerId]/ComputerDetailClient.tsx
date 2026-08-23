@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AssetStatusBadge } from '@/components/asset-status-badge';
 import { useComputer, useComputerHistory } from '@/hooks/use-computers';
+import { useUserRole } from '@/stores/auth-store';
 import { PeripheralsSection } from './peripherals-section';
 import { AssetHistoryTimeline } from './asset-history-timeline';
 import AssetHistoryForm from './asset-history-form';
@@ -14,15 +15,15 @@ interface ComputerDetailClientProps {
   buildingId: string;
   roomId: string;
   computerId: string;
-  canEdit: boolean;
 }
 
 export function ComputerDetailClient({
   buildingId,
   roomId,
   computerId,
-  canEdit,
 }: ComputerDetailClientProps) {
+  const role = useUserRole();
+  const canEdit = role === 'ADMIN' || role === 'TECHNICIAN';
   // Parallel queries - both fire simultaneously
   const { data: computer, isPending: computerPending, isError: computerError } =
     useComputer(buildingId, roomId, computerId);

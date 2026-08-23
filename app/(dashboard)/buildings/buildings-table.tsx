@@ -30,14 +30,12 @@ import { useBuildings } from '@/hooks/use-buildings';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
+import { useUserRole } from '@/stores/auth-store';
 import type { TBuilding } from '@/types/api';
 
-interface BuildingsTableProps {
-  isAdmin: boolean;
-}
-
 // Self-fetching: no buildings prop needed anymore
-export function BuildingsTable({ isAdmin }: BuildingsTableProps) {
+export function BuildingsTable() {
+  const isAdmin = useUserRole() === 'ADMIN';
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: buildings = [], isPending, isError } = useBuildings();

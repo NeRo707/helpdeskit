@@ -5,16 +5,18 @@ import { ChevronLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRoom } from '@/hooks/use-buildings';
+import { useUserRole } from '@/stores/auth-store';
 import { ComputersTable } from './computers-table';
 import { NetworkDevicesTable } from './netdevices-table';
 
 interface RoomDetailClientProps {
   buildingId: string;
   roomId: string;
-  canEdit: boolean;
 }
 
-export function RoomDetailClient({ buildingId, roomId, canEdit }: RoomDetailClientProps) {
+export function RoomDetailClient({ buildingId, roomId }: RoomDetailClientProps) {
+  const role = useUserRole();
+  const canEdit = role === 'ADMIN' || role === 'TECHNICIAN';
   const { data: room, isPending, isError } = useRoom(buildingId, roomId);
 
   if (isPending) {
