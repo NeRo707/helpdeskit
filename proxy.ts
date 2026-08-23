@@ -77,16 +77,26 @@ async function refreshSession(req: NextRequest) {
 
 type RouteRule = {
   path: string;
+  match: "exact" | "prefix";
   blockedRoles: string[];
   redirectTo: string;
 };
 
 // Role-based route restrictions.
-// Users matching `blockedRoles` visiting the exact `path` are redirected to
-// `redirectTo`. Nested pages (such as /tickets/my) have their own access rules.
+// These are navigation rules only; API guards remain the authorization source
+// of truth for every data request.
 const ROLE_RULES: RouteRule[] = [
-  { path: "/tickets", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
+  { path: "/dashboard", match: "exact", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
+  { path: "/tickets", match: "exact", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
+  { path: "/buildings", match: "prefix", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
+  { path: "/users", match: "prefix", blockedRoles: ["USER", "TECHNICIAN"], redirectTo: "/dashboard" },
 ];
+
+function matchesRoute(pathname: string, rule: RouteRule) {
+  return rule.match === "exact"
+    ? pathname === rule.path
+    : pathname === rule.path || pathname.startsWith(`${rule.path}/`);
+}
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -124,7 +134,7 @@ export async function proxy(req: NextRequest) {
   // Role-based routing
   for (const rule of ROLE_RULES) {
     if (
-      pathname === rule.path &&
+      matchesRoute(pathname, rule) &&
       payload?.role &&
       rule.blockedRoles.includes(payload.role)
     ) {

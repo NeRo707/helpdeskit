@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { parseSetCookie } from "set-cookie-parser";
 
 const BACKEND_URL = process.env.BACKEND_URL!;
@@ -54,7 +55,7 @@ async function clearToken() {
 /**
  * Fetch the current user via /auth/me using the server-held httpOnly cookies.
  */
-export async function getMe() {
+const loadCurrentUser = cache(async () => {
   try {
     if (!(await getToken())) return null;
     const cookie = await authCookieHeader();
@@ -69,9 +70,17 @@ export async function getMe() {
     // Backend returns { id, name, email, role, isActive }
     return res.json();
   } catch (err) {
-    console.error("getMe error:", err);
+    console.error("loadCurrentUser error:", err);
     return null;
   }
+});
+
+/**
+ * Returns the API-validated current user. React memoizes this once per server
+ * render, so nested layouts/pages can safely reuse it without extra API calls.
+ */
+export async function getMe() {
+  return loadCurrentUser();
 }
 
 /**
