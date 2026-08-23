@@ -2,8 +2,6 @@
 
 import { useTransition } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-// Read user from Zustand - no more prop drilling!
-// The server layout bootstrapped this store via <Providers initialUser={user}>.
 import { useCurrentUser } from "@/stores/auth-store";
 
 interface DashboardLayoutClientProps {
