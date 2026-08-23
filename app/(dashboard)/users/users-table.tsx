@@ -44,6 +44,8 @@ export function UsersTable() {
   };
 
   const handleDeactivate = (userId: string, isActive: boolean) => {
+    if (!currentUser || userId === currentUser.id) return;
+
     toggleActive.mutate(
       { id: userId, isActive: !isActive },
       {
@@ -116,7 +118,9 @@ export function UsersTable() {
               </td>
               <td className="whitespace-nowrap p-3 text-muted-foreground">{formatDate(user.createdAt)}</td>
               <td className="p-3">
-                {user.id === currentUser?.id ? (
+                {!currentUser ? (
+                  <span className="text-xs text-muted-foreground">Loading...</span>
+                ) : user.id === currentUser.id ? (
                   <span className="text-xs text-muted-foreground">You</span>
                 ) : (
                   <AlertDialog>
