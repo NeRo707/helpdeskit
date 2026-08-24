@@ -27,6 +27,7 @@ export function ComputerDetailClient({
   // Parallel queries - both fire simultaneously
   const { data: computer, isPending: computerPending, isError: computerError } =
     useComputer(buildingId, roomId, computerId);
+
   const { data: history = [], isPending: historyPending } =
     useComputerHistory(computerId);
 
