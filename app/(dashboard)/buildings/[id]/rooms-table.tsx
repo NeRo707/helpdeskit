@@ -55,7 +55,7 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
   const columns: Column<TRoom>[] = [
     { header: 'Name', accessor: 'name' },
     { header: 'Floor', accessor: (row) => row.floor || '-' },
-    { header: 'Computers', accessor: (row) => row._count?.computers ?? 0 },
+    { header: 'Computers', accessor: (row) => row.computers?.length ?? 0 },
     ...(isAdmin
       ? [
           {

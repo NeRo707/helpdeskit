@@ -67,7 +67,10 @@ export function ComputersTable({
       header: "Status",
       accessor: (row) => <AssetStatusBadge status={row.status} />,
     },
-    { header: "Peripherals", accessor: (row) => row._count?.peripherals ?? 0 },
+    {
+      header: "Peripherals",
+      accessor: (row) => row._count?.peripherals ?? row.peripherals?.length ?? 0,
+    },
     ...(canEdit
       ? [
           {
