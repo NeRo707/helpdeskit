@@ -95,7 +95,7 @@ export function UsersTable() {
                   onValueChange={(value) => handleRoleChange(user.id, value as TRole)}
                   disabled={!currentUser || user.id === currentUser.id || updateRole.isPending}
                 >
-                  <SelectTrigger className="h-7 w-[130px] text-xs">
+                  <SelectTrigger className="h-7 w-32.5 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
