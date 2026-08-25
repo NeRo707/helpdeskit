@@ -28,16 +28,29 @@ export function TimelineDiff({ diff }: TimelineDiffProps) {
     <div className="mt-2 rounded-md bg-muted p-2 text-xs space-y-1">
       {entries.map(([field, value]) => {
         const typedValue = value as { before?: string; old?: string; after?: string; new?: string };
-        const beforeVal = typedValue.before ?? typedValue.old ?? "-";
-        const afterVal = typedValue.after ?? typedValue.new ?? "-";
+        const beforeVal = typedValue.before ?? typedValue.old;
+        const afterVal = typedValue.after ?? typedValue.new;
+
+        const formatDate = (value?: string) => {
+          if (!value) return "-";
+          const parsed = new Date(value);
+          return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
+        };
 
         return (
           <p key={field}>
             <span className="font-medium">{field}</span>:{" "}
             {field === "UpdatedAt" ? (
               <>
-                {new Date(beforeVal).toLocaleString()} → {new Date(afterVal).toLocaleString()}
+                {formatDate(beforeVal)} → {formatDate(afterVal)}
               </>
+            ) : (
+              <>
+                {beforeVal ?? "-"} → {afterVal ?? "-"}
+              </>
+            )}
+          </p>
+        );
             ) : (
               <>
                 {beforeVal} → {afterVal}
