@@ -34,9 +34,8 @@ function decodeToken(token?: string): TokenPayload | null {
 
 function isTokenValid(payload: TokenPayload | null): boolean {
   if (!payload) return false;
-  if (payload.exp !== undefined && payload.exp * 1000 <= Date.now())
-    return false;
-  return true;
+  if (payload.exp === undefined) return false;
+  return payload.exp * 1000 > Date.now();
 }
 
 function authCookies(upstream: Response): Cookie[] {
