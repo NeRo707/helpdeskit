@@ -92,8 +92,18 @@ export function AssetHistoryTimeline({
 
     const entries = Object.entries(diff).filter(([, value]) => {
       if (!value || typeof value !== "object") return false;
-      const typedValue = value as Record<string, unknown>;
-      return "before" in typedValue || "after" in typedValue;
+      const typedValue = value as {
+        before?: unknown;
+        old?: unknown;
+        after?: unknown;
+        new?: unknown;
+      };
+      return (
+        "before" in typedValue ||
+        "old" in typedValue ||
+        "after" in typedValue ||
+        "new" in typedValue
+      );
     });
 
     if (entries.length === 0) {
@@ -109,12 +119,32 @@ export function AssetHistoryTimeline({
     return (
       <div className="mt-2 rounded-md bg-muted p-2 text-xs space-y-1">
         {entries.map(([field, value]) => {
-          const typedValue = value as { before?: unknown; after?: unknown };
+          const typedValue = value as {
+            before?: string;
+            old?: string;
+            after?: string;
+            new?: string;
+          };
+
           return (
             <p key={field}>
               <span className="font-medium">{field}</span>:{" "}
-              {String(typedValue.before ?? "-")} →{" "}
-              {String(typedValue.after ?? "-")}
+              {field === "UpdatedAt" ? (
+                <>
+                  {new Date(
+                    typedValue.before ?? typedValue.old ?? "-",
+                  ).toLocaleString()}
+                  {" → "}
+                  {new Date(
+                    typedValue.after ?? typedValue.new ?? "-",
+                  ).toLocaleString()}
+                </>
+              ) : (
+                <>
+                  {typedValue.before ?? typedValue.old ?? "-"} →{" "}
+                  {typedValue.after ?? typedValue.new ?? "-"}
+                </>
+              )}
             </p>
           );
         })}
@@ -147,6 +177,99 @@ export function AssetHistoryTimeline({
       </Card>
     );
   }
+
+const renderFormattedObject = (
+  data: Record<string, unknown> | null | undefined,
+  isNested = false
+) => {
+  if (!data || (typeof data === "object" && Object.keys(data).length === 0)) {
+    return <p className="text-muted-foreground italic">No data available</p>;
+  }
+
+  // Filter out the "Computer" relational object
+  const entries = Object.entries(data).filter(
+    ([key]) => key.toLowerCase() !== "computer"
+  );
+
+  if (entries.length === 0) {
+    return <p className="text-muted-foreground italic">No data available</p>;
+  }
+
+  return (
+    <div
+      className={`grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 ${
+        !isNested ? "rounded-md bg-muted/50 p-3" : ""
+      }`}
+    >
+      {entries.map(([key, value]) => {
+        let displayValue: React.ReactNode;
+        let spanFull = false;
+
+        if (value === null || value === undefined || value === "") {
+          displayValue = <span className="text-muted-foreground">-</span>;
+        } else if (typeof value === "boolean") {
+          displayValue = (
+            <Badge
+              variant={value ? "outline" : "secondary"}
+              className="text-[10px] px-1.5 py-0 h-4"
+            >
+              {value ? "True" : "False"}
+            </Badge>
+          );
+        } else if (
+          (key.endsWith("At") || key.toLowerCase().includes("date")) &&
+          typeof value === "string" &&
+          !isNaN(Date.parse(value))
+        ) {
+          displayValue = new Date(value).toLocaleString();
+        } else if (Array.isArray(value)) {
+          spanFull = value.length > 0;
+          displayValue = value.length === 0 ? (
+            <span className="text-muted-foreground">None</span>
+          ) : (
+            <div className="mt-1 flex flex-col gap-2">
+              {value.map((item, idx) => (
+                <div key={idx} className="rounded-md border bg-background/50 p-2">
+                  {typeof item === "object" && item !== null
+                    ? renderFormattedObject(item as Record<string, unknown>, true)
+                    : String(item)}
+                </div>
+              ))}
+            </div>
+          );
+        } else if (typeof value === "object") {
+          spanFull = true;
+          displayValue = (
+            <div className="mt-1 rounded-md border bg-background/50 p-2">
+              {renderFormattedObject(value as Record<string, unknown>, true)}
+            </div>
+          );
+        } else {
+          displayValue = String(value);
+        }
+
+        const formattedKey = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase())
+          .trim();
+
+        return (
+          <div
+            key={key}
+            className={`flex flex-col text-xs ${
+              spanFull ? "col-span-full" : ""
+            }`}
+          >
+            <span className="font-semibold text-muted-foreground text-[11px]">
+              {formattedKey}
+            </span>
+            <div className="break-words font-medium">{displayValue}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
   return (
     <Card>
@@ -239,19 +362,22 @@ export function AssetHistoryTimeline({
                   </div>
                 )}
                 {canShowDetails(entry) && expandedIds.includes(entry.id) && (
-                  <div className="mt-2 grid gap-2 rounded-md border bg-muted/30 p-3 text-xs">
-                    <div>
-                      <p className="mb-1 font-medium">Snapshot</p>
-                      <pre className="whitespace-pre-wrap rounded bg-muted p-2">
-                        {JSON.stringify(entry.snapshot, null, 2)}
-                      </pre>
-                    </div>
-                    {entry.diff && (
+                  <div className="mt-2 space-y-3 rounded-md border bg-muted/20 p-3 text-xs">
+                    {entry.snapshot &&
+                      Object.keys(entry.snapshot).length > 0 && (
+                        <div>
+                          <p className="mb-2 font-semibold text-foreground">
+                            Snapshot Details
+                          </p>
+                          {renderFormattedObject(entry.snapshot)}
+                        </div>
+                      )}
+                    {entry.diff && Object.keys(entry.diff).length > 0 && (
                       <div>
-                        <p className="mb-1 font-medium">Diff</p>
-                        <pre className="whitespace-pre-wrap rounded bg-muted p-2">
-                          {JSON.stringify(entry.diff, null, 2)}
-                        </pre>
+                        <p className="mb-2 font-semibold text-foreground">
+                          Raw Diff Data
+                        </p>
+                        {renderFormattedObject(entry.diff)}
                       </div>
                     )}
                   </div>
