@@ -29,7 +29,7 @@ async function saveAuthCookies(upstream: Response) {
   );
 
   if (!upstreamCookies.some((cookie) => cookie.name === "accessToken")) {
-    throw new Error("Login response did not include an access token cookie");
+    throw new Error("Auth response did not include an access token cookie");
   }
 
   const cookieStore = await cookies();
