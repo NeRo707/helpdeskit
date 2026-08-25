@@ -39,11 +39,11 @@ export async function apiClient<T>(
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
 
   const request = () => fetch(`${BASE_URL}/${normalizedPath}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(options?.headers as Record<string, string>),
     },
-    ...options,
   });
 
   let res = await request();
