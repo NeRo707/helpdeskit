@@ -1,17 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { parseSetCookie } from 'set-cookie-parser';
 
 const BACKEND_URL = process.env.BACKEND_URL!;
-const TOKEN_COOKIE = 'accessToken';
+const AUTH_COOKIES = new Set(['accessToken', 'refreshToken']);
+
+function copyAuthCookies(upstream: Response, response: NextResponse) {
+  for (const cookie of parseSetCookie(upstream)) {
+    if (!AUTH_COOKIES.has(cookie.name)) continue;
+
+    response.cookies.set(cookie.name, cookie.value, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: cookie.maxAge,
+    });
+  }
+}
 
 async function forwardRequest(req: NextRequest, segments: string[]) {
   const path = segments.join('/');
   const body = req.method !== 'GET' ? await req.text() : undefined;
 
-  // Read the JWT from our httpOnly cookie and forward it as Bearer
-  const token = req.cookies.get(TOKEN_COOKIE)?.value;
-
   const headers = new Headers();
-  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const cookieHeader = req.headers.get('cookie');
+  if (cookieHeader) headers.set('cookie', cookieHeader);
   if (body !== undefined) headers.set('Content-Type', 'application/json');
 
   const backendRes = await fetch(`${BACKEND_URL}/${path}${req.nextUrl.search}`, {
@@ -26,6 +39,7 @@ async function forwardRequest(req: NextRequest, segments: string[]) {
 
   const contentType = backendRes.headers.get('content-type');
   if (contentType) res.headers.set('content-type', contentType);
+  copyAuthCookies(backendRes, res);
 
   return res;
 }

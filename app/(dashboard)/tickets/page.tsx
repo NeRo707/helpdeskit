@@ -1,21 +1,11 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PlusCircle } from "lucide-react";
-
-import { getMe } from "@/actions/auth";
-import { Role } from "@/types/api";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { TicketsPageClient } from "./TicketsPageClient";
 
-export default async function TicketsPage() {
-  const user = await getMe();
-
-  if (!user) redirect("/login");
-  if (user.role === Role.USER) redirect("/tickets/my");
-
-  // Shell: auth guard only. Data fetching delegated to TicketsPageClient.
+export default function TicketsPage() {
   return (
     <div className="space-y-4">
       <PageHeader

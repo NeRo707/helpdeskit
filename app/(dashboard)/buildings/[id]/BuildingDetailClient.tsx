@@ -5,14 +5,15 @@ import { ChevronLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useBuilding } from '@/hooks/use-buildings';
+import { useUserRole } from '@/stores/auth-store';
 import { RoomsTable } from './rooms-table';
 
 interface BuildingDetailClientProps {
   id: string;
-  isAdmin: boolean;
 }
 
-export function BuildingDetailClient({ id, isAdmin }: BuildingDetailClientProps) {
+export function BuildingDetailClient({ id }: BuildingDetailClientProps) {
+  const isAdmin = useUserRole() === 'ADMIN';
   const { data: building, isPending, isError } = useBuilding(id);
 
   if (isPending) {

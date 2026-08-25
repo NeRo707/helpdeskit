@@ -1,14 +1,14 @@
 /**
  * Browser-side API client used by all React Query hooks.
  *
- * All requests go to Next.js /api/[...proxy] which reads the httpOnly
- * accessToken cookie server-side and forwards it to the backend as
- * Authorization: Bearer <token>. The browser never touches the token directly.
+ * All requests go to Next.js /api/[...proxy]. The browser sends its httpOnly
+ * cookies only to Next.js; the proxy relays them to the backend. The browser
+ * never reads or handles a JWT.
  */
 
-// In the browser, use a relative path so it always hits the same origin.
-// On the server (SSR), we need an absolute URL.
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+// This client is used by browser-side React Query hooks, so a relative URL is
+// both safer and portable across local ports and deployed domains.
+const BASE_URL = '/api';
 
 // --- Custom error classes -----------------------------------------------------
 
@@ -38,13 +38,23 @@ export async function apiClient<T>(
   // Normalize: strip leading slash, proxy adds it back
   const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
 
-  const res = await fetch(`${BASE_URL}/${normalizedPath}`, {
+  const request = () => fetch(`${BASE_URL}/${normalizedPath}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(options?.headers as Record<string, string>),
     },
-    ...options,
   });
+
+  let res = await request();
+
+  // Access tokens are intentionally short-lived. Refresh through the same
+  // origin proxy so new httpOnly cookies are applied by the browser, then
+  // retry the original request once.
+  if (res.status === 401 && normalizedPath !== 'auth/refresh') {
+    const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST' });
+    if (refreshRes.ok) res = await request();
+  }
 
   if (res.status === 401) {
     throw new UnauthorizedError();

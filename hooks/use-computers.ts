@@ -20,7 +20,8 @@ export function useComputer(buildingId: string, roomId: string, computerId: stri
     queryKey: computerKeys.detail(computerId),
     queryFn: () =>
       apiClient<TComputer>(
-        `/buildings/${buildingId}/rooms/${roomId}/computers/${computerId}`
+        // `/buildings/${buildingId}/rooms/${roomId}/computers/${computerId}` //nestjs route
+        `/computers/${computerId}` //asp route
       ),
     enabled: !!computerId,
     staleTime: 60_000,

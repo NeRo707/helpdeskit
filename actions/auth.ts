@@ -2,44 +2,66 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
+import { parseSetCookie } from "set-cookie-parser";
 
 const BACKEND_URL = process.env.BACKEND_URL!;
-const TOKEN_COOKIE = "accessToken";
-const MAX_AGE = 60 * 60 * 2; // 2 hours – matches backend JWT expiry
+const AUTH_COOKIE_NAMES = new Set(["accessToken", "refreshToken"]);
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function getToken(): Promise<string | undefined> {
-  return (await cookies()).get(TOKEN_COOKIE)?.value;
+  return (await cookies()).get("accessToken")?.value;
 }
 
-async function saveToken(token: string) {
-  (await cookies()).set(TOKEN_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: MAX_AGE,
-  });
+async function authCookieHeader() {
+  const cookieStore = await cookies();
+  return ["accessToken", "refreshToken"]
+    .map((name) => cookieStore.get(name))
+    .filter((cookie): cookie is NonNullable<typeof cookie> => Boolean(cookie))
+    .map(({ name, value }) => `${name}=${value}`)
+    .join("; ");
+}
+
+async function saveAuthCookies(upstream: Response) {
+  const upstreamCookies = parseSetCookie(upstream).filter((cookie) =>
+    AUTH_COOKIE_NAMES.has(cookie.name),
+  );
+
+  if (!upstreamCookies.some((cookie) => cookie.name === "accessToken")) {
+    throw new Error("Auth response did not include an access token cookie");
+  }
+
+  const cookieStore = await cookies();
+  for (const cookie of upstreamCookies) {
+    cookieStore.set(cookie.name, cookie.value, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: cookie.maxAge,
+    });
+  }
 }
 
 async function clearToken() {
-  (await cookies()).delete(TOKEN_COOKIE);
+  const cookieStore = await cookies();
+  cookieStore.delete("accessToken");
+  cookieStore.delete("refreshToken");
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Fetch the current user via /auth/me.
- * Sends the stored JWT as a Bearer token (backend uses JwtBearer, not cookie auth).
+ * Fetch the current user via /auth/me using the server-held httpOnly cookies.
  */
-export async function getMe() {
+const loadCurrentUser = cache(async () => {
   try {
-    const token = await getToken();
-    if (!token) return null;
+    if (!(await getToken())) return null;
+    const cookie = await authCookieHeader();
 
     const res = await fetch(`${BACKEND_URL}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { cookie },
       cache: "no-store",
     });
 
@@ -48,24 +70,32 @@ export async function getMe() {
     // Backend returns { id, name, email, role, isActive }
     return res.json();
   } catch (err) {
-    console.error("getMe error:", err);
+    console.error("loadCurrentUser error:", err);
     return null;
   }
+});
+
+/**
+ * Returns the API-validated current user. React memoizes this once per server
+ * render, so nested layouts/pages can safely reuse it without extra API calls.
+ */
+export async function getMe() {
+  return loadCurrentUser();
 }
 
 /**
  * Authenticated fetch helper for server actions / server components.
- * Automatically attaches the Bearer token and redirects to /login on 401.
+ * Automatically relays the session cookies and redirects to /login on 401.
  */
 export async function authFetch(path: string, options?: RequestInit): Promise<Response> {
-  const token = await getToken();
+  const cookie = await authCookieHeader();
   const { headers: optionHeaders, ...restOptions } = options ?? {};
 
   const res = await fetch(`${BACKEND_URL}${path}`, {
     cache: "no-store",
     ...restOptions,
     headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(cookie ? { cookie } : {}),
       ...(optionHeaders as Record<string, string>),
     },
   });
@@ -96,13 +126,9 @@ export async function loginAction(email: string, password: string) {
     throw new Error(error.message ?? "Login failed");
   }
 
-  // Backend returns { accessToken, user } in the JSON body
-  const data = await res.json();
-  const token: string = data.accessToken;
-
-  if (!token) throw new Error("No token received from server");
-
-  await saveToken(token);
+  // Nest's Set-Cookie response reaches this server action, not the browser.
+  // Relay both httpOnly session cookies to the browser without exposing JWTs.
+  await saveAuthCookies(res);
   redirect("/dashboard");
 }
 
@@ -123,23 +149,18 @@ export async function registerAction(
     throw new Error(err.message ?? "Registration failed");
   }
 
-  const data = await res.json();
-  const token: string = data.accessToken;
-
-  if (!token) throw new Error("No token received from server");
-
-  await saveToken(token);
+  await saveAuthCookies(res);
   redirect("/dashboard");
 }
 
 export async function logoutAction() {
-  const token = await getToken();
+  const cookie = await authCookieHeader();
 
   try {
-    if (token) {
+    if (cookie) {
       await fetch(`${BACKEND_URL}/auth/logout`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { cookie },
       });
     }
   } catch {

@@ -24,14 +24,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/format';
 import type { TRole } from '@/types/api';
 import { useUsers, useUpdateUserRole, useToggleUserActive } from '@/hooks/use-users';
-
-interface UsersTableProps {
-  /** Passed from the server page - used to protect the current user from self-modification */
-  currentUserId: string;
-}
+import { useCurrentUser } from '@/stores/auth-store';
 
 // Self-fetching: no users prop needed anymore
-export function UsersTable({ currentUserId }: UsersTableProps) {
+export function UsersTable() {
+  const currentUser = useCurrentUser();
   const { data: users = [], isPending, isError } = useUsers();
   const updateRole = useUpdateUserRole();
   const toggleActive = useToggleUserActive();
@@ -47,6 +44,8 @@ export function UsersTable({ currentUserId }: UsersTableProps) {
   };
 
   const handleDeactivate = (userId: string, isActive: boolean) => {
+    if (!currentUser || userId === currentUser.id) return;
+
     toggleActive.mutate(
       { id: userId, isActive: !isActive },
       {
@@ -94,9 +93,9 @@ export function UsersTable({ currentUserId }: UsersTableProps) {
                 <Select
                   value={user.role}
                   onValueChange={(value) => handleRoleChange(user.id, value as TRole)}
-                  disabled={user.id === currentUserId || updateRole.isPending}
+                  disabled={!currentUser || user.id === currentUser.id || updateRole.isPending}
                 >
-                  <SelectTrigger className="h-7 w-[130px] text-xs">
+                  <SelectTrigger className="h-7 w-32.5 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -119,7 +118,9 @@ export function UsersTable({ currentUserId }: UsersTableProps) {
               </td>
               <td className="whitespace-nowrap p-3 text-muted-foreground">{formatDate(user.createdAt)}</td>
               <td className="p-3">
-                {user.id === currentUserId ? (
+                {!currentUser ? (
+                  <span className="text-xs text-muted-foreground">Loading...</span>
+                ) : user.id === currentUser.id ? (
                   <span className="text-xs text-muted-foreground">You</span>
                 ) : (
                   <AlertDialog>

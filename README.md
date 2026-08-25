@@ -27,7 +27,7 @@ This frontend is built with a modern, high-performance React stack:
 The application is structured to ensure security, performance, and maintainability. Key architectural decisions include:
 
 - **Strict State Separation:** `Zustand` is used strictly for ephemeral UI state (e.g., sidebar toggles) and synchronous client data (e.g., currently authenticated user). `React Query` handles all async server state.
-- **Secure Authentication:** JWT tokens are stored securely in `httpOnly` cookies. The browser never touches the token directly. API calls from the client hit a Next.js proxy route (`/api/[...proxy]`) which attaches the token and forwards the request to the backend.
+- **Secure Authentication:** JWT tokens are stored securely in `httpOnly` cookies. The browser never touches the token directly. API calls from the client hit a Next.js proxy route (`/api/[...proxy]`) which relays the session cookies to the backend.
 - **Optimistic Updates:** React Query mutations use optimistic UI updates for instant feedback on actions like changing ticket statuses or assigning users, with automatic rollbacks if the server rejects the change.
 - **URL-Driven State:** Complex filter states (e.g., for ticket lists) are stored in the URL search params using `nuqs`, enabling shareable, bookmarkable views and seamless SSR.
 
@@ -54,10 +54,10 @@ Create a `.env.local` or `.env` file in the root of the project with the followi
 
 ```env
 # The actual URL of your backend API server
-BACKEND_URL=http://localhost:5006/api
+BACKEND_URL=http://localhost:5006
 
 # The base URL for client-side fetches to hit the Next.js proxy
-NEXT_PUBLIC_BASE_URL=http://localhost:3000/api
+# Client calls use the relative /api proxy automatically; no public backend URL is needed.
 ```
 
 ### Running the Application

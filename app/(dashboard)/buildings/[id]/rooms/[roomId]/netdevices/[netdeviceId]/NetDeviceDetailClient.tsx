@@ -6,21 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AssetStatusBadge } from '@/components/asset-status-badge';
 import { useNetworkDevice } from '@/hooks/use-netdevices';
+import { useUserRole } from '@/stores/auth-store';
 import NotesForm from './notes-form';
 
 interface NetDeviceDetailClientProps {
   buildingId: string;
   roomId: string;
   netdeviceId: string;
-  canEdit: boolean;
 }
 
 export function NetDeviceDetailClient({
   buildingId,
   roomId,
   netdeviceId,
-  canEdit,
 }: NetDeviceDetailClientProps) {
+  const role = useUserRole();
+  const canEdit = role === 'ADMIN' || role === 'TECHNICIAN';
   const { data: networkDevice, isPending, isError } =
     useNetworkDevice(buildingId, roomId, netdeviceId);
 
