@@ -106,10 +106,16 @@ export async function proxy(req: NextRequest) {
   // Refresh before rendering a protected page. Redirecting back to the same
   // URL makes the new cookies available to the next server-component request.
   if (!isTokenValid(payload)) {
-    const refreshed = await refreshSession(req);
+    const alreadyRetried = req.cookies.get("sessionRefreshed")?.value === "1";
+    const refreshed = alreadyRetried ? null : await refreshSession(req);
     if (refreshed) {
       const response = NextResponse.redirect(req.nextUrl);
       applyAuthCookies(response, refreshed.refreshedCookies);
+      response.cookies.set("sessionRefreshed", "1", {
+        httpOnly: true,
+        path: "/",
+        maxAge: 10,
+      });
       return response;
     }
   }
