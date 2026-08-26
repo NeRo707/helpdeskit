@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useDeleteBuilding } from "@/hooks/use-buildings";
 import type { TBuilding } from "@/types/api";
+import Link from "next/link";
 
 interface BuildingCardProps {
   building: TBuilding;
@@ -35,7 +36,7 @@ export function BuildingCard({ building }: BuildingCardProps) {
   };
 
   return (
-    <div className="relative cursor-pointer rounded border border-border bg-card p-4 transition-colors hover:border-primary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+    <Link href={`/buildings/${building.id}`} className="relative cursor-pointer rounded border border-border bg-card p-4 transition-colors hover:border-primary/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
       <div className="mb-2 flex items-center gap-2">
         <Building2 className="h-4 w-4 text-primary" />
         <h3 className="font-heading font-semibold">{building.name}</h3>
@@ -80,6 +81,6 @@ export function BuildingCard({ building }: BuildingCardProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </Link>
   );
 }
