@@ -1,4 +1,4 @@
-import { TicketDetailClient } from './TicketDetailClient';
+import { TicketDetailClient } from './ticket-detail.client';
 
 export default async function TicketDetailPage({
   params,

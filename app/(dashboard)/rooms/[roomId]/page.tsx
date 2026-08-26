@@ -1,4 +1,4 @@
-import { RoomDetailClient } from './RoomDetailClient';
+import { RoomDetailClient } from './room-detail.client';
 
 export default async function RoomDetailPage({
   params,

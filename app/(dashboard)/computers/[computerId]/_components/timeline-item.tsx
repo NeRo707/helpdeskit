@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TAssetHistory } from "@/types/api";
-import { TimelineDiff } from "./TimelineDiff";
+import { TimelineDiff } from "./timeline-diff";
 
 const ACTION_STYLES: Record<string, string> = {
   CREATED: "bg-green-100 text-green-800 border-green-200",

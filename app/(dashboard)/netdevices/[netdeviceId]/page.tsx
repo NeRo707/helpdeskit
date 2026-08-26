@@ -1,4 +1,4 @@
-import { NetDeviceDetailClient } from './NetDeviceDetailClient';
+import { NetDeviceDetailClient } from './net-device-detail.client';
 
 export default async function NetDeviceDetailPage({
   params,

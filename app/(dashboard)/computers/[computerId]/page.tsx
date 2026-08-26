@@ -2,7 +2,7 @@ import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query
 import { computerKeys } from "@/hooks/use-computers";
 import { fetchAPI } from "@/lib/api";
 import type { TComputer, TAssetHistory } from "@/types/api";
-import { ComputerDetailClient } from "./ComputerDetailClient";
+import { ComputerDetailClient } from "./computer-detail.client";
 
 export default async function ComputerDetailPage({
   params,

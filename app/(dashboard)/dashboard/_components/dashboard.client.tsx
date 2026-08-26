@@ -16,10 +16,10 @@
 import { useTickets } from '@/hooks/use-tickets';
 import { useBuildings } from '@/hooks/use-buildings';
 import { PageHeader } from '@/components/page-header';
-import StatsCards from './StatsCards';
-import { RecentTickets } from './RecentTickets';
-import { TicketStatusPieChart } from './TicketStatusPieChart';
-import { TicketsTrendLineChart } from './TicketsTrendLineChart';
+import StatsCards from './stats-cards';
+import { RecentTickets } from './recent-tickets';
+import { TicketStatusPieChart } from './ticket-status-pie-chart';
+import { TicketsTrendLineChart } from './tickets-trend-line-chart';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function DashboardClient() {
