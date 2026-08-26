@@ -1,11 +1,5 @@
 "use client";
 
-/**
- * ComputersTable - receives computers from the parent's useRoom() cache.
- * Mutations use useUpsertComputer which invalidates the room query on success,
- * triggering an automatic background refetch - no router.refresh() needed.
- */
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -29,53 +23,54 @@ import {
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { DataTable, type Column } from "@/components/data-table";
 import { AssetStatusBadge } from "@/components/asset-status-badge";
-import type { TComputer, TAssetStatus } from "@/types/api";
-import { useUpsertComputer } from "@/hooks/use-buildings";
+import type { TAssetStatus, TNetworkDevice } from "@/types/api";
+import { useUpsertNetworkDevice } from "@/hooks/use-buildings";
 
-interface ComputersTableProps {
+interface NetworkDevicesTableProps {
   buildingId: string;
   roomId: string;
-  computers: TComputer[];
+  networkDevices: TNetworkDevice[];
   canEdit: boolean;
 }
 
-export function ComputersTable({
+export function NetworkDevicesTable({
   buildingId,
   roomId,
-  computers,
+  networkDevices,
   canEdit,
-}: ComputersTableProps) {
+}: NetworkDevicesTableProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [editComputer, setEditComputer] = useState<TComputer | null>(null);
+  const [editDevice, setEditDevice] = useState<TNetworkDevice | null>(null);
 
   // Form state
   const [hostname, setHostname] = useState("");
   const [ipAddress, setIpAddress] = useState("");
   const [macAddress, setMacAddress] = useState("");
-  const [os, setOs] = useState("");
+  const [type, setType] = useState("");
+  const [brand, setBrand] = useState("");
+  const [model, setModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
   const [status, setStatus] = useState<TAssetStatus>("ACTIVE");
 
-  // Single mutation covers both create (no computerId) and update (with computerId)
-  const upsert = useUpsertComputer(buildingId, roomId);
+  const upsert = useUpsertNetworkDevice(buildingId, roomId);
 
-  const columns: Column<TComputer>[] = [
-    { header: "Hostname", accessor: "hostname" },
-    { header: "IP Address", accessor: (row) => row.ipAddress || "-" },
-    { header: "OS", accessor: (row) => row.os || "-" },
+  const columns: Column<TNetworkDevice>[] = [
+    { header: "Type", accessor: (row) => row.type || "-" },
+    { header: "Brand", accessor: (row) => row.brand || "-" },
+    { header: "Model", accessor: (row) => row.model || "-" },
     {
       header: "Status",
       accessor: (row) => <AssetStatusBadge status={row.status} />,
     },
-    {
-      header: "Peripherals",
-      accessor: (row) => row._count?.peripherals ?? row.peripherals?.length ?? 0,
-    },
+    { header: "Hostname", accessor: (row) => row.hostname || "-" },
+    { header: "IP Address", accessor: (row) => row.ipAddress || "-" },
+    { header: "Serial Number", accessor: (row) => row.serialNumber || "-" },
     ...(canEdit
       ? [
           {
             header: "Actions",
-            accessor: (row: TComputer) => (
+            accessor: (row: TNetworkDevice) => (
               <div onClick={(e) => e.stopPropagation()}>
                 <Button
                   variant="ghost"
@@ -91,29 +86,33 @@ export function ComputersTable({
       : []),
   ];
 
-  const handleRowClick = (computer: TComputer) => {
-    router.push(
-      `/buildings/${buildingId}/rooms/${roomId}/computers/${computer.id}`,
-    );
+  const handleRowClick = (device: TNetworkDevice) => {
+    router.push(`/netdevices/${device.id}`);
   };
 
-  const handleEdit = (computer: TComputer) => {
-    setEditComputer(computer);
-    setHostname(computer.hostname);
-    setIpAddress(computer.ipAddress || "");
-    setMacAddress(computer.macAddress || "");
-    setOs(computer.os || "");
-    setStatus(computer.status);
+  const handleEdit = (device: TNetworkDevice) => {
+    setEditDevice(device);
+    setHostname(device.hostname || "");
+    setIpAddress(device.ipAddress || "");
+    setMacAddress(device.macAddress || "");
+    setType(device.type || "");
+    setBrand(device.brand || "");
+    setModel(device.model || "");
+    setSerialNumber(device.serialNumber || "");
+    setStatus(device.status);
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setEditComputer(null);
+    setEditDevice(null);
     setHostname("");
     setIpAddress("");
     setMacAddress("");
-    setOs("");
+    setType("");
+    setBrand("");
+    setModel("");
+    setSerialNumber("");
     setStatus("ACTIVE");
   };
 
@@ -121,22 +120,26 @@ export function ComputersTable({
     e.preventDefault();
     upsert.mutate(
       {
-        computerId: editComputer?.id,
+        deviceId: editDevice?.id,
         data: {
+          roomId: editDevice ? undefined : roomId,
           hostname,
           ipAddress: ipAddress || null,
           macAddress: macAddress || null,
-          os: os || null,
+          type: type || null,
+          brand: brand || null,
+          model: model || null,
+          serialNumber: serialNumber || null,
           status,
         },
       },
       {
         onSuccess: () => {
-          toast.success(editComputer ? "Computer updated" : "Computer created");
+          toast.success(editDevice ? "Network device updated" : "Network device created");
           handleClose();
         },
         onError: (err) =>
-          toast.error(err instanceof Error ? err.message : "Failed to save computer"),
+          toast.error(err instanceof Error ? err.message : "Failed to save network device"),
       },
     );
   };
@@ -149,21 +152,48 @@ export function ComputersTable({
             <DialogTrigger asChild>
               <Button onClick={() => setOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Computer
+                Add Network Device
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>
-                  {editComputer ? "Edit Computer" : "Add New Computer"}
+                  {editDevice ? "Edit Network Device" : "Add New Network Device"}
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
                 <FieldGroup>
                   <Field>
-                    <FieldLabel htmlFor="computer-hostname">Hostname</FieldLabel>
+                    <FieldLabel htmlFor="nd-type">Type</FieldLabel>
                     <Input
-                      id="computer-hostname"
+                      id="nd-type"
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      placeholder="e.g., Switch, Router (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="nd-brand">Brand</FieldLabel>
+                    <Input
+                      id="nd-brand"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      placeholder="e.g., Cisco (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="nd-model">Model</FieldLabel>
+                    <Input
+                      id="nd-model"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder="Model (optional)"
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="nd-hostname">Hostname</FieldLabel>
+                    <Input
+                      id="nd-hostname"
                       value={hostname}
                       onChange={(e) => setHostname(e.target.value)}
                       placeholder="Hostname"
@@ -171,39 +201,39 @@ export function ComputersTable({
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="computer-ip">IP Address</FieldLabel>
+                    <FieldLabel htmlFor="nd-ip">IP Address</FieldLabel>
                     <Input
-                      id="computer-ip"
+                      id="nd-ip"
                       value={ipAddress}
                       onChange={(e) => setIpAddress(e.target.value)}
                       placeholder="IP Address (optional)"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="computer-mac">MAC Address</FieldLabel>
+                    <FieldLabel htmlFor="nd-mac">MAC Address</FieldLabel>
                     <Input
-                      id="computer-mac"
+                      id="nd-mac"
                       value={macAddress}
                       onChange={(e) => setMacAddress(e.target.value)}
                       placeholder="MAC Address (optional)"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="computer-os">Operating System</FieldLabel>
+                    <FieldLabel htmlFor="nd-serial">Serial Number</FieldLabel>
                     <Input
-                      id="computer-os"
-                      value={os}
-                      onChange={(e) => setOs(e.target.value)}
-                      placeholder="e.g., Windows 11, Ubuntu 22.04"
+                      id="nd-serial"
+                      value={serialNumber}
+                      onChange={(e) => setSerialNumber(e.target.value)}
+                      placeholder="Serial Number (optional)"
                     />
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="computer-status">Status</FieldLabel>
+                    <FieldLabel htmlFor="nd-status">Status</FieldLabel>
                     <Select
                       value={status}
                       onValueChange={(v) => setStatus(v as TAssetStatus)}
                     >
-                      <SelectTrigger id="computer-status">
+                      <SelectTrigger id="nd-status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -215,7 +245,11 @@ export function ComputersTable({
                     </Select>
                   </Field>
                   <Button type="submit" className="w-full" disabled={upsert.isPending}>
-                    {upsert.isPending ? "Saving..." : editComputer ? "Update" : "Create"}
+                    {upsert.isPending
+                      ? "Saving..."
+                      : editDevice
+                        ? "Update"
+                        : "Create"}
                   </Button>
                 </FieldGroup>
               </form>
@@ -226,9 +260,9 @@ export function ComputersTable({
 
       <DataTable
         columns={columns}
-        data={computers}
+        data={networkDevices}
         onRowClick={handleRowClick}
-        emptyMessage="No computers found"
+        emptyMessage="No network devices found"
       />
     </div>
   );

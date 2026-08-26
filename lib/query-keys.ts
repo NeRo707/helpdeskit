@@ -48,8 +48,8 @@ export const queryKeys = {
     list: () => ['buildings', 'list'] as const,
     /** A single building by ID (includes rooms array) */
     detail: (id: string) => ['buildings', id] as const,
-    /** A single room within a building (includes computers + netdevices) */
-    room: (buildingId: string, roomId: string) =>
-      ['buildings', buildingId, 'rooms', roomId] as const,
+    /** A single room by ID (includes computers + netdevices) */
+    room: (roomId: string) =>
+      ['rooms', roomId] as const,
   },
 } as const;

@@ -5,22 +5,17 @@ import { toast } from "sonner";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { TNetworkDevice } from "@/types/api";
 import { useUpdateNetworkDevice } from "@/hooks/use-netdevices";
 
 const NotesForm = ({
-  buildingId,
-  roomId,
   entityId,
   currentNotes,
 }: {
-  buildingId: string;
-  roomId: string;
   entityId: string;
   currentNotes: string | null;
 }) => {
   const [notes, setNotes] = useState(currentNotes ?? "");
-  const updateDevice = useUpdateNetworkDevice(buildingId, roomId, entityId);
+  const updateDevice = useUpdateNetworkDevice(entityId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

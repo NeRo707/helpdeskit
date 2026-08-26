@@ -10,20 +10,16 @@ import { useUserRole } from '@/stores/auth-store';
 import NotesForm from './notes-form';
 
 interface NetDeviceDetailClientProps {
-  buildingId: string;
-  roomId: string;
   netdeviceId: string;
 }
 
 export function NetDeviceDetailClient({
-  buildingId,
-  roomId,
   netdeviceId,
 }: NetDeviceDetailClientProps) {
   const role = useUserRole();
   const canEdit = role === 'ADMIN' || role === 'TECHNICIAN';
   const { data: networkDevice, isPending, isError } =
-    useNetworkDevice(buildingId, roomId, netdeviceId);
+    useNetworkDevice(netdeviceId);
 
   if (isPending) {
     return (
@@ -47,7 +43,7 @@ export function NetDeviceDetailClient({
     <div>
       <div className="mb-6">
         <Link
-          href={`/buildings/${buildingId}/rooms/${roomId}`}
+          href={`/rooms/${networkDevice.roomId}`}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
@@ -156,8 +152,6 @@ export function NetDeviceDetailClient({
       </Card>
       {canEdit && (
         <NotesForm
-          buildingId={buildingId}
-          roomId={roomId}
           entityId={netdeviceId}
           currentNotes={networkDevice.notes}
         />

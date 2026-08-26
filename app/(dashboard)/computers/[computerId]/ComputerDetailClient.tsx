@@ -12,21 +12,15 @@ import { AssetHistoryTimeline } from './_components/asset-history-timeline';
 import AssetHistoryForm from './_components/asset-history-form';
 
 interface ComputerDetailClientProps {
-  buildingId: string;
-  roomId: string;
   computerId: string;
 }
 
-export function ComputerDetailClient({
-  buildingId,
-  roomId,
-  computerId,
-}: ComputerDetailClientProps) {
+export function ComputerDetailClient({ computerId }: ComputerDetailClientProps) {
   const role = useUserRole();
   const canEdit = role === 'ADMIN' || role === 'TECHNICIAN';
   // Parallel queries - both fire simultaneously
   const { data: computer, isPending: computerPending, isError: computerError } =
-    useComputer(buildingId, roomId, computerId);
+    useComputer(computerId);
 
   const { data: history = [], isPending: historyPending } =
     useComputerHistory(computerId);
@@ -54,7 +48,7 @@ export function ComputerDetailClient({
     <div>
       <div className="mb-6">
         <Link
-          href={`/buildings/${buildingId}/rooms/${roomId}`}
+          href={`/rooms/${computer.roomId}`}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
@@ -135,8 +129,6 @@ export function ComputerDetailClient({
 
       {/* Peripherals come from computer.peripherals in the query cache */}
       <PeripheralsSection
-        buildingId={buildingId}
-        roomId={roomId}
         computerId={computerId}
         peripherals={computer.peripherals ?? []}
         canEdit={canEdit}

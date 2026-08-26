@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TAssetHistory } from "@/types/api";
 import { useDeleteAssetHistory } from "@/hooks/use-computers";
-import { TimelineItem } from "./TimelineItem"; // Adjust path as needed
+import { TimelineItem } from "./TimelineItem";
 
 interface AssetHistoryTimelineProps {
   computerId: string;

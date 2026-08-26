@@ -51,13 +51,6 @@ export function TimelineDiff({ diff }: TimelineDiffProps) {
             )}
           </p>
         );
-            ) : (
-              <>
-                {beforeVal} → {afterVal}
-              </>
-            )}
-          </p>
-        );
       })}
     </div>
   );

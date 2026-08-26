@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { AssetStatusBadge } from "@/components/asset-status-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { TPeripheral, TPeripheralType, TAssetStatus } from "@/types/api";
+import { useUpsertPeripheral, useDeletePeripheral } from "@/hooks/use-computers";
 import { DialogDescription } from "@radix-ui/react-dialog";
 
 const PERIPHERAL_TYPES: TPeripheralType[] = [
@@ -42,27 +42,24 @@ const PERIPHERAL_TYPES: TPeripheralType[] = [
 ];
 
 interface PeripheralsSectionProps {
-  buildingId: string;
-  roomId: string;
   computerId: string;
   peripherals: TPeripheral[];
   canEdit: boolean;
 }
 
 export function PeripheralsSection({
-  buildingId,
-  roomId,
   computerId,
   peripherals,
   canEdit,
 }: PeripheralsSectionProps) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editPeripheral, setEditPeripheral] = useState<TPeripheral | null>(null);
   const [deletePeripheral, setDeletePeripheral] = useState<TPeripheral | null>(
     null,
   );
-  const [loading, setLoading] = useState(false);
+
+  const upsert = useUpsertPeripheral(computerId);
+  const deleteMutation = useDeletePeripheral(computerId);
 
   // Form state
   const [type, setType] = useState<TPeripheralType>("MONITOR");
@@ -132,71 +129,48 @@ export function PeripheralsSection({
     setStatus("ACTIVE");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const url = editPeripheral
-        ? `/api/buildings/${buildingId}/rooms/${roomId}/computers/${computerId}/peripherals/${editPeripheral.id}`
-        : `/api/buildings/${buildingId}/rooms/${roomId}/computers/${computerId}/peripherals`;
-      const method = editPeripheral ? "PATCH" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+    upsert.mutate(
+      {
+        peripheralId: editPeripheral?.id,
+        data: {
           type,
           brand: brand || null,
           model: model || null,
           serialNumber: serialNumber || null,
           status,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to save peripheral");
-      }
-
-      toast.success(editPeripheral ? "Peripheral updated" : "Peripheral added");
-      handleClose();
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to save peripheral",
-      );
-    } finally {
-      setLoading(false);
-    }
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success(editPeripheral ? "Peripheral updated" : "Peripheral added");
+          handleClose();
+        },
+        onError: (err) => {
+          toast.error(
+            err instanceof Error ? err.message : "Failed to save peripheral",
+          );
+        },
+      },
+    );
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deletePeripheral) return;
-    setLoading(true);
 
-    try {
-      const res = await fetch(
-        `/api/buildings/${buildingId}/rooms/${roomId}/computers/${computerId}/peripherals/${deletePeripheral.id}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to delete peripheral");
-      }
-
-      toast.success("Peripheral deleted");
-      setDeletePeripheral(null);
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete peripheral",
-      );
-    } finally {
-      setLoading(false);
-    }
+    deleteMutation.mutate(deletePeripheral.id, {
+      onSuccess: () => {
+        toast.success("Peripheral deleted");
+        setDeletePeripheral(null);
+      },
+      onError: (err) => {
+        toast.error(
+          err instanceof Error ? err.message : "Failed to delete peripheral",
+        );
+      },
+    });
   };
 
   return (
@@ -292,8 +266,8 @@ export function PeripheralsSection({
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Saving..." : editPeripheral ? "Update" : "Add"}
+                  <Button type="submit" className="w-full" disabled={upsert.isPending}>
+                    {upsert.isPending ? "Saving..." : editPeripheral ? "Update" : "Add"}
                   </Button>
                 </FieldGroup>
               </form>
