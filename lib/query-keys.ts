@@ -48,8 +48,19 @@ export const queryKeys = {
     list: () => ['buildings', 'list'] as const,
     /** A single building by ID (includes rooms array) */
     detail: (id: string) => ['buildings', id] as const,
-    /** A single room within a building (includes computers + netdevices) */
-    room: (buildingId: string, roomId: string) =>
-      ['buildings', buildingId, 'rooms', roomId] as const,
+    /** A single room by ID (includes computers + netdevices) */
+    room: (roomId: string) =>
+      ['rooms', roomId] as const,
+  },
+
+  computers: {
+    /** Matches ALL computer queries */
+    all: () => ['computers'] as const,
+    /** A single computer, including its peripherals */
+    detail: (id: string) => ['computers', id] as const,
+    /** Asset history for a computer */
+    history: (id: string) => ['computers', id, 'history'] as const,
+    /** Reserved for a separately fetched peripherals list */
+    peripherals: (id: string) => ['computers', id, 'peripherals'] as const,
   },
 } as const;

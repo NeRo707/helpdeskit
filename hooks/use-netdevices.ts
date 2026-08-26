@@ -1,5 +1,5 @@
 /**
- * Network Device-specific hooks - queries for detail, and mutations for notes, history, etc.
+ * Network Device-specific hooks - queries for detail and mutations for notes, history, etc.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,13 +13,11 @@ export const netdeviceKeys = {
 
 // --- Queries ------------------------------------------------------------------
 
-export function useNetworkDevice(buildingId: string, roomId: string, netdeviceId: string) {
+export function useNetworkDevice(netdeviceId: string) {
   return useQuery({
     queryKey: netdeviceKeys.detail(netdeviceId),
     queryFn: () =>
-      apiClient<TNetworkDevice>(
-        `/buildings/${buildingId}/rooms/${roomId}/netdevices/${netdeviceId}`
-      ),
+      apiClient<TNetworkDevice>(`/networkdevices/${netdeviceId}`),
     enabled: !!netdeviceId,
     staleTime: 60_000,
   });
@@ -27,12 +25,12 @@ export function useNetworkDevice(buildingId: string, roomId: string, netdeviceId
 
 // --- Mutations ----------------------------------------------------------------
 
-export function useUpdateNetworkDevice(buildingId: string, roomId: string, netdeviceId: string) {
+export function useUpdateNetworkDevice(netdeviceId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: Partial<TNetworkDevice>) =>
-      apiClient<TNetworkDevice>(`/buildings/${buildingId}/rooms/${roomId}/netdevices/${netdeviceId}`, {
-        method: 'PATCH',
+      apiClient<TNetworkDevice>(`/networkdevices/${netdeviceId}`, {
+        method: 'PUT',
         body: JSON.stringify(data),
       }),
     onSuccess: () => {

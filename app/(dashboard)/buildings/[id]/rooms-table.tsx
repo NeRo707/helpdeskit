@@ -76,7 +76,7 @@ export function RoomsTable({ buildingId, rooms, isAdmin }: RoomsTableProps) {
   ];
 
   const handleRowClick = (room: TRoom) => {
-    router.push(`/buildings/${buildingId}/rooms/${room.id}`);
+    router.push(`/rooms/${room.id}`);
   };
 
   const handleEdit = (room: TRoom) => {

@@ -10,14 +10,13 @@ import { ComputersTable } from './computers-table';
 import { NetworkDevicesTable } from './netdevices-table';
 
 interface RoomDetailClientProps {
-  buildingId: string;
   roomId: string;
 }
 
-export function RoomDetailClient({ buildingId, roomId }: RoomDetailClientProps) {
+export function RoomDetailClient({ roomId }: RoomDetailClientProps) {
   const role = useUserRole();
   const canEdit = role === 'ADMIN' || role === 'TECHNICIAN';
-  const { data: room, isPending, isError } = useRoom(buildingId, roomId);
+  const { data: room, isPending, isError } = useRoom(roomId);
 
   if (isPending) {
     return (
@@ -43,7 +42,7 @@ export function RoomDetailClient({ buildingId, roomId }: RoomDetailClientProps) 
     <div>
       <div className="mb-6">
         <Link
-          href={`/buildings/${buildingId}`}
+          href={`/buildings/${room.buildingId}`}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
@@ -85,7 +84,7 @@ export function RoomDetailClient({ buildingId, roomId }: RoomDetailClientProps) 
           <h2 className="mb-4 text-xl font-semibold">Network Devices</h2>
           {/* networkDevices from the room query - no extra fetch */}
           <NetworkDevicesTable
-            buildingId={buildingId}
+            buildingId={room.buildingId}
             roomId={roomId}
             networkDevices={room.networkDevices ?? []}
             canEdit={canEdit}
@@ -94,7 +93,7 @@ export function RoomDetailClient({ buildingId, roomId }: RoomDetailClientProps) 
         <div>
           <h2 className="mb-4 text-xl font-semibold">Computers</h2>
           <ComputersTable
-            buildingId={buildingId}
+            buildingId={room.buildingId}
             roomId={roomId}
             computers={room.computers ?? []}
             canEdit={canEdit}

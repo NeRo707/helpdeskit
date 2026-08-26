@@ -4,24 +4,19 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { queryKeys } from '@/lib/query-keys';
 import type { TComputer, TAssetHistory, TPeripheral, TPeripheralType, TAssetStatus } from '@/types/api';
 
-// --- Query keys ---------------------------------------------------------------
-export const computerKeys = {
-  detail: (id: string) => ['computers', id] as const,
-  history: (id: string) => ['computers', id, 'history'] as const,
-  peripherals: (id: string) => ['computers', id, 'peripherals'] as const,
-};
+export const computerKeys = queryKeys.computers;
 
 // --- Queries ------------------------------------------------------------------
 
-export function useComputer(buildingId: string, roomId: string, computerId: string) {
+export function useComputer(computerId: string) {
   return useQuery({
     queryKey: computerKeys.detail(computerId),
     queryFn: () =>
       apiClient<TComputer>(
-        // `/buildings/${buildingId}/rooms/${roomId}/computers/${computerId}` //nestjs route
-        `/computers/${computerId}` //asp route
+        `/computers/${computerId}`
       ),
     enabled: !!computerId,
     staleTime: 60_000,

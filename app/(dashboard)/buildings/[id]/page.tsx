@@ -1,4 +1,4 @@
-import { BuildingDetailClient } from './BuildingDetailClient';
+import { BuildingDetailClient } from './building-detail.client';
 
 export default async function BuildingDetailPage({
   params,

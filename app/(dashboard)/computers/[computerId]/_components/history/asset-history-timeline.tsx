@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { TAssetHistory } from "@/types/api";
 import { useDeleteAssetHistory } from "@/hooks/use-computers";
-import { TimelineItem } from "./TimelineItem"; // Adjust path as needed
+import { TimelineItem } from "../timeline-item";
 
 interface AssetHistoryTimelineProps {
   computerId: string;
@@ -17,7 +17,6 @@ interface AssetHistoryTimelineProps {
 
 export function AssetHistoryTimeline({ computerId, history, canEdit }: AssetHistoryTimelineProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const deleteHistory = useDeleteAssetHistory(computerId);
 
   const allSelected = useMemo(
@@ -33,12 +32,6 @@ export function AssetHistoryTimeline({ computerId, history, canEdit }: AssetHist
 
   const toggleAll = (checked: boolean) => {
     setSelectedIds(checked ? history.map((entry) => entry.id) : []);
-  };
-
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((prev) =>
-      prev.includes(id) ? prev.filter((eId) => eId !== id) : [...prev, id]
-    );
   };
 
   const handleDeleteSelected = () => {
@@ -100,9 +93,7 @@ export function AssetHistoryTimeline({ computerId, history, canEdit }: AssetHist
               entry={entry}
               canEdit={canEdit}
               isSelected={selectedIds.includes(entry.id)}
-              isExpanded={expandedIds.includes(entry.id)}
               onToggleSelect={toggleSelection}
-              onToggleExpand={toggleExpanded}
             />
           ))}
         </div>

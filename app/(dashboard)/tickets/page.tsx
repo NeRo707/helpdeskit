@@ -3,7 +3,7 @@ import { PlusCircle } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { TicketsPageClient } from "./TicketsPageClient";
+import { TicketsPageClient } from "./tickets-page-client";
 
 export default function TicketsPage() {
   return (
