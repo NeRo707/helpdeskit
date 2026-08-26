@@ -4,14 +4,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { queryKeys } from '@/lib/query-keys';
 import type { TComputer, TAssetHistory, TPeripheral, TPeripheralType, TAssetStatus } from '@/types/api';
 
-// --- Query keys ---------------------------------------------------------------
-export const computerKeys = {
-  detail: (id: string) => ['computers', id] as const,
-  history: (id: string) => ['computers', id, 'history'] as const,
-  peripherals: (id: string) => ['computers', id, 'peripherals'] as const,
-};
+export const computerKeys = queryKeys.computers;
 
 // --- Queries ------------------------------------------------------------------
 

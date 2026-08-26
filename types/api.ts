@@ -144,13 +144,15 @@ export type TNetworkDevice = {
   updatedAt: string;
 };
 
+export type TAssetDiff = Record<string, { old: unknown; new: unknown }>;
+
 export type TAssetHistory = {
   id: string;
   entityId: string;
   entityType: TEntityType;
   action: string;
-  snapshot: Record<string, unknown>;
-  diff: Record<string, unknown> | null;
+  snapshot: Record<string, string>;
+  diff: TAssetDiff | null;
   changedBy: Pick<TUser, "id" | "name" | "email" | "role">;
   changedAt: string;
 };

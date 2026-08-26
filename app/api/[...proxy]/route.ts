@@ -20,25 +20,32 @@ function copyAuthCookies(upstream: Response, response: NextResponse) {
 
 async function forwardRequest(req: NextRequest, segments: string[]) {
   const path = segments.join('/');
-  const body = req.method !== 'GET' ? await req.text() : undefined;
+
+  const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
 
   const headers = new Headers();
+
+  const reqContentType = req.headers.get('content-type');
+  if (reqContentType) headers.set('content-type', reqContentType);
+
   const cookieHeader = req.headers.get('cookie');
   if (cookieHeader) headers.set('cookie', cookieHeader);
-  if (body !== undefined) headers.set('Content-Type', 'application/json');
 
   const backendRes = await fetch(`${BACKEND_URL}/${path}${req.nextUrl.search}`, {
     method: req.method,
     headers,
-    body,
+    body: hasBody ? req.body : undefined,
+    ...(hasBody && { duplex: 'half' }),
     cache: 'no-store',
   });
 
-  const resBody = await backendRes.text();
-  const res = new NextResponse(resBody, { status: backendRes.status });
+  const res = new NextResponse(backendRes.body, {
+    status: backendRes.status
+  });
 
-  const contentType = backendRes.headers.get('content-type');
-  if (contentType) res.headers.set('content-type', contentType);
+  const resContentType = backendRes.headers.get('content-type');
+  if (resContentType) res.headers.set('content-type', resContentType);
+
   copyAuthCookies(backendRes, res);
 
   return res;

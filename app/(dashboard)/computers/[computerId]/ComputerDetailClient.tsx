@@ -7,9 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AssetStatusBadge } from '@/components/asset-status-badge';
 import { useComputer, useComputerHistory } from '@/hooks/use-computers';
 import { useUserRole } from '@/stores/auth-store';
-import { PeripheralsSection } from './_components/peripherals-section';
-import { AssetHistoryTimeline } from './_components/asset-history-timeline';
-import AssetHistoryForm from './_components/asset-history-form';
+import { AssetHistoryTimeline } from './_components/history/asset-history-timeline';
+import AssetHistoryForm from './_components/history/asset-history-form';
+import { PeripheralsSection } from './_components/peripherals/peripherals-section';
 
 interface ComputerDetailClientProps {
   computerId: string;
@@ -140,7 +140,7 @@ export function ComputerDetailClient({ computerId }: ComputerDetailClientProps) 
         history={historyPending ? [] : history}
         canEdit={canEdit}
       />
-      <AssetHistoryForm computerId={computerId} />
+      {canEdit && <AssetHistoryForm computerId={computerId} />}
     </div>
   );
 }
