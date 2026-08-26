@@ -41,15 +41,17 @@ export function NetDeviceDetailClient({
 
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          href={`/rooms/${networkDevice.roomId}`}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Back to Room
-        </Link>
-      </div>
+      {networkDevice.roomId !== null && (
+        <div className="mb-6">
+          <Link
+            href={`/rooms/${networkDevice.roomId}`}
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="mr-1 h-4 w-4" />
+            Back to Room
+          </Link>
+        </div>
+      )}
 
       <div className="mb-8 flex items-center gap-4">
         <div>
