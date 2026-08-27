@@ -47,7 +47,6 @@ export default function NewTicketPage() {
         title: data.title,
         description: data.description,
         priority: data.priority,
-        computerId: data.computerId || null,
       },
       {
         onSuccess: (ticket) => {
@@ -87,11 +86,6 @@ export default function NewTicketPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className={labelClass}>Computer ID (optional)</Label>
-          <Input {...register('computerId')} placeholder="Computer UUID" />
         </div>
 
         <div className="space-y-1.5">

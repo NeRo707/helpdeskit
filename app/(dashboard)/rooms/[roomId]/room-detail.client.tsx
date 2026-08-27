@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRoom } from '@/hooks/use-buildings';
 import { useUserRole } from '@/stores/auth-store';
-import { ComputersTable } from './computers-table';
-import { NetworkDevicesTable } from './netdevices-table';
+import { ComputersTable } from './_libs/components/computers/computers-table.client';
+import { NetworkDevicesTable } from './_libs/components/netdevices/netdevices-table.client';
 
 interface RoomDetailClientProps {
   roomId: string;

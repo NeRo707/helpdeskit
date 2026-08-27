@@ -39,7 +39,9 @@ function isTokenValid(payload: TokenPayload | null): boolean {
 }
 
 function authCookies(upstream: Response): Cookie[] {
-  return parseSetCookie(upstream).filter((cookie) => AUTH_COOKIES.has(cookie.name));
+  return parseSetCookie(upstream).filter((cookie) =>
+    AUTH_COOKIES.has(cookie.name),
+  );
 }
 
 function applyAuthCookies(response: NextResponse, upstreamCookies: Cookie[]) {
@@ -66,7 +68,9 @@ async function refreshSession(req: NextRequest) {
     if (!upstream.ok) return null;
 
     const refreshedCookies = authCookies(upstream);
-    const accessToken = refreshedCookies.find((cookie) => cookie.name === TOKEN_COOKIE)?.value;
+    const accessToken = refreshedCookies.find(
+      (cookie) => cookie.name === TOKEN_COOKIE,
+    )?.value;
     const payload = decodeToken(accessToken);
     return isTokenValid(payload) ? { payload, refreshedCookies } : null;
   } catch {
@@ -85,10 +89,42 @@ type RouteRule = {
 // These are navigation rules only; API guards remain the authorization source
 // of truth for every data request.
 const ROLE_RULES: RouteRule[] = [
-  { path: "/dashboard", match: "exact", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
-  { path: "/tickets", match: "exact", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
-  { path: "/buildings", match: "prefix", blockedRoles: ["USER"], redirectTo: "/tickets/my" },
-  { path: "/users", match: "prefix", blockedRoles: ["USER", "TECHNICIAN"], redirectTo: "/dashboard" },
+  {
+    path: "/dashboard",
+    match: "exact",
+    blockedRoles: ["USER"],
+    redirectTo: "/tickets/my",
+  },
+  {
+    path: "/tickets",
+    match: "exact",
+    blockedRoles: ["USER"],
+    redirectTo: "/tickets/my",
+  },
+  {
+    path: "/buildings",
+    match: "prefix",
+    blockedRoles: ["USER"],
+    redirectTo: "/tickets/my",
+  },
+  {
+    path: "/users",
+    match: "prefix",
+    blockedRoles: ["USER", "TECHNICIAN"],
+    redirectTo: "/dashboard",
+  },
+  {
+    path: "/computers",
+    match: "prefix",
+    blockedRoles: ["USER"],
+    redirectTo: "/tickets/my",
+  },
+  {
+    path: "/rooms",
+    match: "prefix",
+    blockedRoles: ["USER"],
+    redirectTo: "/tickets/my",
+  },
 ];
 
 function matchesRoute(pathname: string, rule: RouteRule) {
@@ -132,7 +168,8 @@ export async function proxy(req: NextRequest) {
   if (!isTokenValid(payload)) {
     const response = NextResponse.redirect(new URL("/login", req.url));
     if (token) response.cookies.delete(TOKEN_COOKIE);
-    if (req.cookies.get(REFRESH_COOKIE)) response.cookies.delete(REFRESH_COOKIE);
+    if (req.cookies.get(REFRESH_COOKIE))
+      response.cookies.delete(REFRESH_COOKIE);
     return response;
   }
 
