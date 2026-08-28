@@ -162,7 +162,7 @@ export function useUpsertComputer(buildingId: string, roomId: string) {
     }) => {
       const url = computerId ? `/computers/${computerId}` : `/computers`;
       return apiClient<TComputer>(url, {
-        method: computerId ? "PATCH" : "POST",
+        method: computerId ? "PUT" : "POST",
         body: JSON.stringify(data),
       });
     },
