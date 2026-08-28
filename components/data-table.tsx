@@ -33,96 +33,66 @@ export function DataTable<T extends { id: string }>({
   emptyMessage = "No data available",
   rowClassName,
 }: DataTableProps<T>) {
-  if (loading) {
-    return (
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column, index) => (
-                <TableHead key={index} className={column.className}>
-                  {column.header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, rowIndex) => (
-              <TableRow key={rowIndex}>
-                {columns.map((_, colIndex) => (
-                  <TableCell key={colIndex}>
-                    <Skeleton className="h-5 w-full" />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    );
-  }
+  const header = (
+    <TableHeader>
+      <TableRow>
+        {columns.map((column) => (
+          <TableHead key={column.header} className={column.className}>
+            {column.header}
+          </TableHead>
+        ))}
+      </TableRow>
+    </TableHeader>
+  );
 
-  if (data.length === 0) {
-    return (
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column, index) => (
-                <TableHead key={index} className={column.className}>
-                  {column.header}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center text-muted-foreground"
-              >
-                {emptyMessage}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    );
+  function renderBody() {
+    if (loading) {
+      return Array.from({ length: 5 }).map((_, i) => (
+        <TableRow key={i}>
+          {columns.map((column) => (
+            <TableCell key={column.header}>
+              <Skeleton className="h-5 w-full" />
+            </TableCell>
+          ))}
+        </TableRow>
+      ));
+    }
+
+    if (data.length === 0) {
+      return (
+        <TableRow>
+          <TableCell
+            colSpan={columns.length}
+            className="h-24 text-center text-muted-foreground"
+          >
+            {emptyMessage}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return data.map((row) => (
+      <TableRow
+        key={row.id}
+        onClick={() => onRowClick?.(row)}
+        className={onRowClick ? `cursor-pointer ${rowClassName ?? ""}` : rowClassName}
+      >
+        {columns.map((column) => (
+          <TableCell key={column.header} className={column.className}>
+            {typeof column.accessor === "function"
+              ? column.accessor(row)
+              : (row[column.accessor] as React.ReactNode)}
+          </TableCell>
+        ))}
+      </TableRow>
+    ));
   }
 
   return (
     <div className="rounded-md border bg-card">
       <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((column, index) => (
-              <TableHead key={index} className={column.className}>
-                {column.header}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((row) => (
-            <TableRow
-              key={row.id}
-              onClick={() => onRowClick?.(row)}
-              className={
-                onRowClick
-                  ? `cursor-pointer ${rowClassName || ""}`
-                  : rowClassName
-              }
-            >
-              {columns.map((column, colIndex) => (
-                <TableCell key={colIndex} className={column.className}>
-                  {typeof column.accessor === "function"
-                    ? column.accessor(row)
-                    : (row[column.accessor] as React.ReactNode)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
+        {header}
+        <TableBody>{renderBody()}</TableBody>
       </Table>
     </div>
   );

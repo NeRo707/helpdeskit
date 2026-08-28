@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 
 export function useAssetDialog<T extends { id: string }>() {
-  const [open, setOpen]           = useState(false);
+  const [open, setOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<T | null>(null);
 
   const openCreate = useCallback(() => {
@@ -16,10 +16,14 @@ export function useAssetDialog<T extends { id: string }>() {
     setOpen(true);
   }, []);
 
-  const close = useCallback(() => {
+  const close = useCallback((onAfterClose?: () => void) => {
     setOpen(false);
-    setTimeout(() => setEditTarget(null), 150);
+    setTimeout(() => {
+      setEditTarget(null);
+      onAfterClose?.();
+    }, 200); // match dialog duration-200
   }, []);
 
-  return { open, setOpen, editTarget, openCreate, openEdit, close };
+  // setOpen intentionally NOT exposed — all closing must go through close()
+  return { open, editTarget, openCreate, openEdit, close };
 }
