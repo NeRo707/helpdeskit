@@ -1,11 +1,24 @@
-import type { TBuilding, TTicket } from "@/types/api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useBuildings } from "@/hooks/use-buildings";
+import { useTickets } from "@/hooks/use-tickets";
 
-interface StatsCardsProps {
-  buildings: TBuilding[];
-  tickets: TTicket[];
-}
+export default function StatsCards() {
+  const ticketsQuery = useTickets({}, { throwOnError: true });
+  const buildingsQuery = useBuildings({ throwOnError: true });
 
-export default function StatsCards({ buildings, tickets }: StatsCardsProps) {
+  if (ticketsQuery.isPending || buildingsQuery.isPending) {
+    return (
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded border" />
+        ))}
+      </div>
+    );
+  }
+
+  const tickets = ticketsQuery.data ?? [];
+  const buildings = buildingsQuery.data ?? [];
+
   const totalBuildings = buildings.length;
 
   const totalComputers = buildings.reduce((sum, building) => {

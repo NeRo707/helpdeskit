@@ -9,7 +9,7 @@
  * so unrelated cached data stays intact.
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { queryKeys } from "@/lib/query-keys";
 import type {
@@ -24,12 +24,18 @@ import type {
 // Buildings
 // ---------------------------------------------
 
+type BuildingsQueryOptions = Omit<
+  UseQueryOptions<TBuilding[]>,
+  "queryKey" | "queryFn"
+>;
+
 /** Fetches the full building list */
-export function useBuildings() {
+export function useBuildings(options?: BuildingsQueryOptions) {
   return useQuery({
     queryKey: queryKeys.buildings.list(),
     queryFn: () => apiClient<TBuilding[]>("/buildings"),
     staleTime: 5 * 60_000, // 5 minutes - buildings rarely change
+    ...options,
   });
 }
 

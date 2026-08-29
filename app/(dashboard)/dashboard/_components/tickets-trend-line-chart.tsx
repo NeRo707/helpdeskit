@@ -1,7 +1,6 @@
 "use client";
 
 import { Line, LineChart, CartesianGrid, XAxis } from "recharts";
-import type { TTicket } from "@/types/api";
 import {
   Card,
   CardContent,
@@ -15,10 +14,8 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-
-interface TicketsTrendLineChartProps {
-  tickets: TTicket[];
-}
+import { useTickets } from "@/hooks/use-tickets";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const DAYS = 14;
 
@@ -38,7 +35,15 @@ function formatAxisDay(isoDay: string): string {
   ).padStart(2, "0")}`;
 }
 
-export function TicketsTrendLineChart({ tickets }: TicketsTrendLineChartProps) {
+export function TicketsTrendLineChart() {
+  const { data, isPending } = useTickets({}, { throwOnError: true });
+
+  if (isPending) {
+    return <Skeleton className="h-80 rounded border" />;
+  }
+
+  const tickets = data ?? [];
+
   const end = new Date();
   end.setHours(0, 0, 0, 0);
 
@@ -67,7 +72,7 @@ export function TicketsTrendLineChart({ tickets }: TicketsTrendLineChartProps) {
     }
   }
 
-  const data = Array.from(byDay.values());
+  const chartData = Array.from(byDay.values());
 
   return (
     <Card>
@@ -77,7 +82,7 @@ export function TicketsTrendLineChart({ tickets }: TicketsTrendLineChartProps) {
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-80 w-full">
-          <LineChart data={data} margin={{ left: 12, right: 12 }}>
+          <LineChart data={chartData} margin={{ left: 12, right: 12 }}>
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="day"

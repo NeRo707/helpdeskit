@@ -17,6 +17,8 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { useTickets } from "@/hooks/use-tickets";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TicketStatusPieChartProps {
   tickets: TTicket[];
@@ -45,8 +47,16 @@ const chartConfig = {
   CLOSED: { label: "Closed", color: "var(--chart-5)" },
 } satisfies ChartConfig;
 
-export function TicketStatusPieChart({ tickets }: TicketStatusPieChartProps) {
-  const data = STATUS_ENTRIES.map((entry) => ({
+export function TicketStatusPieChart() {
+  const { data, isPending } = useTickets({}, { throwOnError: true });
+
+  if (isPending) {
+    return <Skeleton className="h-80 rounded border" />;
+  }
+
+  const tickets = data ?? [];
+
+  const chartData = STATUS_ENTRIES.map((entry) => ({
     status: entry.key,
     label: entry.label,
     count: tickets.filter((ticket) => ticket.status === entry.key).length,
@@ -63,7 +73,14 @@ export function TicketStatusPieChart({ tickets }: TicketStatusPieChartProps) {
         <ChartContainer config={chartConfig} className="mx-auto max-h-80">
           <PieChart>
             <ChartTooltip content={<ChartTooltipContent nameKey="status" />} />
-            <Pie data={data} dataKey="count" nameKey="status" innerRadius={58} outerRadius={96} paddingAngle={2} />
+            <Pie
+              data={chartData}
+              dataKey="count"
+              nameKey="status"
+              innerRadius={58}
+              outerRadius={96}
+              paddingAngle={2}
+            />
             <ChartLegend content={<ChartLegendContent nameKey="status" />} />
           </PieChart>
         </ChartContainer>

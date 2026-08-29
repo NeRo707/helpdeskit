@@ -14,6 +14,8 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate } from "@/lib/format";
 import type { TTicket } from "@/types/api";
+import { useTickets } from "@/hooks/use-tickets";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface RecentTicketsProps {
   tickets: TTicket[];
@@ -82,13 +84,8 @@ const COLUMNS: { id: string; label: string; sortable: boolean }[] = [
   { id: "createdAt", label: "Created", sortable: true },
 ];
 
-export function RecentTickets({ tickets }: RecentTicketsProps) {
-  const recentTickets = [...tickets]
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
-    .slice(0, 10);
+export function RecentTickets() {
+  const { data, isPending } = useTickets({}, { throwOnError: true });
 
   const [params, setParams] = useQueryStates(
     {
@@ -113,6 +110,19 @@ export function RecentTickets({ tickets }: RecentTicketsProps) {
     }
   };
 
+  if (isPending) {
+    return <Skeleton className="h-80 rounded border" />;
+  }
+
+  const tickets = data ?? [];
+
+  const recentTickets = [...tickets]
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 10);
+
   const sorted = [...recentTickets].sort((a, b) => {
     if (!sortField || !sortDir) return 0;
     return compareTickets(a, b, sortField, sortDir);
@@ -130,6 +140,7 @@ export function RecentTickets({ tickets }: RecentTicketsProps) {
                 <TableHead key={id}>
                   {sortable ? (
                     <button
+                      type="button"
                       className="flex items-center gap-0.5 hover:text-foreground transition-colors"
                       onClick={() => handleSort(id as SortField)}
                     >

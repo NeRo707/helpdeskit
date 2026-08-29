@@ -21,11 +21,11 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-  type UseQueryOptions,
-} from '@tanstack/react-query';
-import { apiClient } from '@/lib/api-client';
-import { queryKeys } from '@/lib/query-keys';
-import type { TTicket, TTicketStatus, TTicketPriority } from '@/types/api';
+  UseQueryOptions,
+} from "@tanstack/react-query";
+import { apiClient } from "@/lib/api-client";
+import { queryKeys } from "@/lib/query-keys";
+import type { TTicket, TTicketStatus, TTicketPriority } from "@/types/api";
 
 // --- Types --------------------------------------------------------------------
 
@@ -45,14 +45,22 @@ interface CreateTicketPayload {
   computerId?: string | null;
 }
 
+type TicketsQueryOptions = Omit<
+  UseQueryOptions<TTicket[]>,
+  'queryKey' | 'queryFn'
+>;
+
 // --- Queries ------------------------------------------------------------------
 
 /** Fetches the filtered ticket list (admin/technician view) */
-export function useTickets(filters: TicketFilters = {}) {
+export function useTickets(
+  filters: TicketFilters = {},
+  options?: TicketsQueryOptions,
+) {
   // Build query string from non-empty filter values
   const activeFilters = Object.fromEntries(
     Object.entries(filters).filter(
-      ([, v]) => v !== '' && v !== undefined && v !== 'all',
+      ([, v]) => v !== "" && v !== undefined && v !== "all",
     ),
   );
 
@@ -65,6 +73,7 @@ export function useTickets(filters: TicketFilters = {}) {
       return apiClient<TTicket[]>(`/tickets?${params}`);
     },
     staleTime: 30_000, // 30 seconds
+    ...options,
   });
 }
 
@@ -72,13 +81,16 @@ export function useTickets(filters: TicketFilters = {}) {
 export function useMyTickets() {
   return useQuery({
     queryKey: queryKeys.tickets.my(),
-    queryFn: () => apiClient<TTicket[]>('/tickets/my'),
+    queryFn: () => apiClient<TTicket[]>("/tickets/my"),
     staleTime: 30_000,
   });
 }
 
 /** Fetches a single ticket by ID with full relations */
-export function useTicket(id: string, options?: Partial<UseQueryOptions<TTicket>>) {
+export function useTicket(
+  id: string,
+  options?: Partial<UseQueryOptions<TTicket>>,
+) {
   return useQuery({
     queryKey: queryKeys.tickets.detail(id),
     queryFn: () => apiClient<TTicket>(`/tickets/${id}`),
@@ -96,17 +108,21 @@ export function useUpdateTicketStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: TTicketStatus }) =>
       apiClient<TTicket>(`/tickets/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify({ status }),
       }),
 
     // OPTIMISTIC UPDATE: update cache before the server responds
     onMutate: async ({ id, status }) => {
       // Cancel any in-flight queries for this ticket so they don't overwrite us
-      await queryClient.cancelQueries({ queryKey: queryKeys.tickets.detail(id) });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.tickets.detail(id),
+      });
 
       // Snapshot the current value for rollback
-      const previous = queryClient.getQueryData<TTicket>(queryKeys.tickets.detail(id));
+      const previous = queryClient.getQueryData<TTicket>(
+        queryKeys.tickets.detail(id),
+      );
 
       // Optimistically update the detail cache
       queryClient.setQueryData<TTicket>(queryKeys.tickets.detail(id), (old) =>
@@ -119,7 +135,10 @@ export function useUpdateTicketStatus() {
     // ROLLBACK: if the server rejects, restore the snapshot
     onError: (_err, { id }, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(queryKeys.tickets.detail(id), context.previous);
+        queryClient.setQueryData(
+          queryKeys.tickets.detail(id),
+          context.previous,
+        );
       }
     },
 
@@ -138,7 +157,7 @@ export function useAssignTicket() {
   return useMutation({
     mutationFn: ({ id, assignedToId }: { id: string; assignedToId: string }) =>
       apiClient<TTicket>(`/tickets/${id}/assign`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify({ assignedToId }),
       }),
 
@@ -156,8 +175,8 @@ export function useCreateTicket() {
 
   return useMutation({
     mutationFn: (payload: CreateTicketPayload) =>
-      apiClient<TTicket>('/tickets', {
-        method: 'POST',
+      apiClient<TTicket>("/tickets", {
+        method: "POST",
         body: JSON.stringify(payload),
       }),
 
@@ -175,13 +194,15 @@ export function useAddComment() {
   return useMutation({
     mutationFn: ({ ticketId, body }: { ticketId: string; body: string }) =>
       apiClient(`/tickets/${ticketId}/comments`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({ body }),
       }),
 
     onSuccess: (_data, { ticketId }) => {
       // Refetch the ticket to get fresh comments array
-      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.detail(ticketId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.tickets.detail(ticketId),
+      });
     },
   });
 }
