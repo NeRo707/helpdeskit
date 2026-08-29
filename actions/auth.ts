@@ -101,7 +101,7 @@ export async function authFetch(path: string, options?: RequestInit): Promise<Re
   });
 
   if (res.status === 401) {
-    redirect("/login");
+    redirect("/auth/login");
   }
 
   if (!res.ok && res.status >= 500) {
@@ -168,5 +168,5 @@ export async function logoutAction() {
   }
 
   await clearToken();
-  redirect("/login");
+  redirect("/auth/login");
 }

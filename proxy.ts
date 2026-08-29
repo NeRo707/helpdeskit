@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseSetCookie, type Cookie } from "set-cookie-parser";
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/auth/login", "/auth/register"];
 const TOKEN_COOKIE = "accessToken";
 const REFRESH_COOKIE = "refreshToken";
 const AUTH_COOKIES = new Set([TOKEN_COOKIE, REFRESH_COOKIE]);
@@ -166,7 +166,7 @@ export async function proxy(req: NextRequest) {
 
   // No token or expired → redirect to login
   if (!isTokenValid(payload)) {
-    const response = NextResponse.redirect(new URL("/login", req.url));
+    const response = NextResponse.redirect(new URL("/auth/login", req.url));
     if (token) response.cookies.delete(TOKEN_COOKIE);
     if (req.cookies.get(REFRESH_COOKIE))
       response.cookies.delete(REFRESH_COOKIE);
