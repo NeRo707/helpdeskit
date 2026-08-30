@@ -2,17 +2,16 @@
 
 import { PageHeader } from "@/components/page-header";
 import { ErrorBoundary } from "@/components/error-boundary";
-import StatsCards from "./stats-cards";
-import { RecentTickets } from "./recent-tickets";
-import { TicketStatusPieChart } from "./ticket-status-pie-chart";
-import { TicketsTrendLineChart } from "./tickets-trend-line-chart";
+import StatsCards from "./_components/stats-cards";
+import { RecentTickets } from "./_components/recent-tickets";
+import { TicketStatusPieChart } from "./_components/ticket-status-pie-chart";
+import { TicketsTrendLineChart } from "./_components/tickets-trend-line-chart";
 
 const errorFallback = (label: string) => (
   <div className="rounded border border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">
     Couldn't load {label}. Try refreshing.
   </div>
 );
-
 export function DashboardClient() {
   return (
     <div className="space-y-6">
