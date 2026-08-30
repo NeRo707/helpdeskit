@@ -11,7 +11,7 @@
  * read this store - no extra network request, no loading state, no caching.
  *
  * The bootstrap flow is:
- *   1. Server layout calls `getMe()` (server action, reads httpOnly cookie)
+ *   1. Server layout calls `loadCurrentUser()` (server action, reads httpOnly cookie)
  *   2. Passes the TUser to `<Providers initialUser={user} />`
  *   3. Providers hydrates this store on mount
  *   4. All client components call `useAuthStore()` - zero network requests

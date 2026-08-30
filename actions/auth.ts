@@ -55,7 +55,7 @@ async function clearToken() {
 /**
  * Fetch the current user via /auth/me using the server-held httpOnly cookies.
  */
-const loadCurrentUser = cache(async () => {
+export const loadCurrentUser = cache(async () => {
   try {
     if (!(await getToken())) return null;
     const cookie = await authCookieHeader();
@@ -74,14 +74,6 @@ const loadCurrentUser = cache(async () => {
     return null;
   }
 });
-
-/**
- * Returns the API-validated current user. React memoizes this once per server
- * render, so nested layouts/pages can safely reuse it without extra API calls.
- */
-export async function getMe() {
-  return loadCurrentUser();
-}
 
 /**
  * Authenticated fetch helper for server actions / server components.

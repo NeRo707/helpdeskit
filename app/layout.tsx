@@ -7,7 +7,7 @@ import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "./globals.css";
 import { LayoutClient } from "./layout.client";
 import { Providers } from "./providers";
-import { getMe } from "@/actions/auth";
+import { loadCurrentUser } from "@/actions/auth";
 
 // The root layout reads the request's httpOnly cookies to bootstrap the user.
 // It must always render per request rather than be considered for static output.
@@ -54,9 +54,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // getMe() runs server-side once per page load to bootstrap the Zustand auth
+  // loadCurrentUser() runs server-side once per page load to bootstrap the Zustand auth
   // store. After this, all client components read user from useCurrentUser().
-  const user = await getMe();
+  const user = await loadCurrentUser();
 
   return (
     <html lang="en" suppressHydrationWarning>
