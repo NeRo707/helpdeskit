@@ -90,6 +90,12 @@ type RouteRule = {
 // of truth for every data request.
 const ROLE_RULES: RouteRule[] = [
   {
+    path: "/",
+    match: "exact",
+    blockedRoles: ["USER", "TECHNICIAN", "ADMIN"],
+    redirectTo: "/auth/login",
+  },
+  {
     path: "/dashboard",
     match: "exact",
     blockedRoles: ["USER"],
