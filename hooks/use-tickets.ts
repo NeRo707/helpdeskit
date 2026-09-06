@@ -107,9 +107,9 @@ export function useUpdateTicketStatus() {
 
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: TTicketStatus }) =>
-      apiClient<TTicket>(`/tickets/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
+      apiClient<TTicket>(`/tickets/status`, {
+        method: "PUT",
+        body: JSON.stringify({ id, status }),
       }),
 
     // OPTIMISTIC UPDATE: update cache before the server responds
@@ -156,11 +156,10 @@ export function useAssignTicket() {
 
   return useMutation({
     mutationFn: ({ id, assignedToId }: { id: string; assignedToId: string }) =>
-      apiClient<TTicket>(`/tickets/${id}/assign`, {
-        method: "PATCH",
-        body: JSON.stringify({ assignedToId }),
+      apiClient<TTicket>(`/tickets/assign`, {
+        method: "PUT",
+        body: JSON.stringify({ id, assignedToId }),
       }),
-
     onSuccess: (_data, { id }) => {
       // Invalidate both the detail and the list so tables re-render
       queryClient.invalidateQueries({ queryKey: queryKeys.tickets.detail(id) });

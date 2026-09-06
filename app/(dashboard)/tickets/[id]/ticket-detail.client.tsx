@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/format';
 import { Role } from '@/types/api';
-import { useCurrentUser } from '@/stores/auth-store';
+import { useCurrentUser, useHasAnyRole } from '@/stores/auth-store';
 import { useTicket } from '@/hooks/use-tickets';
 import { useUsers } from '@/hooks/use-users';
 import { TicketActions } from './ticket-actions';
@@ -27,7 +27,7 @@ interface TicketDetailClientProps {
 export function TicketDetailClient({ id }: TicketDetailClientProps) {
   const user = useCurrentUser();
   const { data: ticket, isPending, isError } = useTicket(id);
-  const canManage = user?.role === Role.ADMIN || user?.role === Role.TECHNICIAN;
+  const canManage = useHasAnyRole([Role.ADMIN, Role.TECHNICIAN]);
 
   // Only fetch users list if this person can manage tickets
   const { data: users = [] } = useUsers();

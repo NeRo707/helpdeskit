@@ -19,8 +19,8 @@
  * On logout, `clearUser()` is called before the server action redirects.
  */
 
-import { create } from 'zustand';
-import type { TUser } from '@/types/api';
+import { create } from "zustand";
+import { Role, TRole, type TUser } from "@/types/api";
 
 interface AuthState {
   /** The currently authenticated user, or null if not logged in */
@@ -43,3 +43,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 export const useCurrentUser = () => useAuthStore((s) => s.user);
 export const useUserRole = () => useAuthStore((s) => s.user?.role ?? null);
+export const useIsAdmin = () =>
+  useAuthStore((s) => s.user?.role === Role.ADMIN);
+export const useIsTechnician = () =>
+  useAuthStore((s) => s.user?.role === Role.TECHNICIAN);
+export const useHasRole = (role: TRole) => useUserRole() === role;
+export const useHasAnyRole = (roles: TRole[]) =>
+  useAuthStore((s) => (s.user?.role ? roles.includes(s.user.role) : false));
