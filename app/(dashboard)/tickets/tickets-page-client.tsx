@@ -16,7 +16,7 @@
 import { useQueryStates, parseAsString, parseAsStringLiteral } from 'nuqs';
 import { useTickets } from '@/hooks/use-tickets';
 import { TicketsTable } from './tickets-table';
-import SearchParamsForm from './_components/SearchParamsForm';
+import SearchParamsForm from './_lib/_components/SearchParamsForm';
 
 const SORT_FIELDS = ['title', 'priority', 'status', 'createdAt', 'assigned'] as const;
 const DIRECTIONS = ['asc', 'desc'] as const;
