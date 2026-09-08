@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useQueryStates, parseAsString, parseAsStringLiteral } from "nuqs";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -19,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate } from "@/lib/format";
 import type { TTicket } from "@/types/api";
+import { useSearchForm, COLUMNS, SortField, SortIcon } from "./_lib/_hooks/useSearchForm";
 
 interface TicketsTableProps {
   tickets: TTicket[];
@@ -26,48 +28,12 @@ interface TicketsTableProps {
   isError?: boolean;
 }
 
-const SORT_FIELDS = ["title", "priority", "status", "createdAt", "assigned"] as const;
-const DIRECTIONS  = ["asc", "desc"] as const;
-const SEARCH_FIELDS = ["title", "reporter", "assigned"] as const;
-
-type SortField = typeof SORT_FIELDS[number];
-
-const COLUMNS: { id: string; label: string; sortable: boolean }[] = [
-  { id: "title",      label: "Title",    sortable: true  },
-  { id: "priority",   label: "Priority", sortable: true  },
-  { id: "status",     label: "Status",   sortable: true  },
-  { id: "reportedBy", label: "Reporter", sortable: false },
-  { id: "assigned",   label: "Assigned", sortable: true  },
-  { id: "createdAt",  label: "Created",  sortable: true  },
-];
-
-function SortIcon({ state }: { state: false | "asc" | "desc" }) {
-  if (state === "asc")  return <ArrowUp   className="ml-1 inline h-3 w-3" />;
-  if (state === "desc") return <ArrowDown className="ml-1 inline h-3 w-3" />;
-  return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-40" />;
-}
-
-export function TicketsTable({ tickets, isLoading, isError }: TicketsTableProps) {
-  // Sort params still live here - they update the URL which triggers a React
-  // Query refetch via TicketsPageClient's useTickets(params) call.
-  const [params, setParams] = useQueryStates(
-    {
-      status:   parseAsString.withDefault(""),
-      priority: parseAsString.withDefault(""),
-      sort:     parseAsStringLiteral(SORT_FIELDS).withDefault("createdAt"),
-      dir:      parseAsStringLiteral(DIRECTIONS).withDefault("desc"),
-      by:       parseAsStringLiteral(SEARCH_FIELDS).withDefault("title"),
-      q:        parseAsString.withDefault(""),
-    },
-    { shallow: false },
-  );
-
-  const handleSort = (colId: SortField) => {
-    setParams({
-      sort: colId,
-      dir: params.sort === colId && params.dir === "desc" ? "asc" : "desc",
-    });
-  };
+export function TicketsTable({
+  tickets,
+  isLoading,
+  isError,
+}: TicketsTableProps) {
+  const { params, setParams, handleSort } = useSearchForm();
 
   return (
     <div className="space-y-4">
@@ -118,29 +84,37 @@ export function TicketsTable({ tickets, isLoading, isError }: TicketsTableProps)
                       onClick={() => handleSort(id as SortField)}
                     >
                       {label}
-                      <SortIcon state={params.sort === id ? params.dir : false} />
+                      <SortIcon
+                        state={params.sort === id ? params.dir : false}
+                      />
                     </button>
-                  ) : label}
+                  ) : (
+                    label
+                  )}
                 </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
             {/* -- Loading state -- */}
-            {isLoading && Array.from({ length: 5 }).map((_, i) => (
-              <TableRow key={i}>
-                {COLUMNS.map((col) => (
-                  <TableCell key={col.id}>
-                    <Skeleton className="h-4 w-full" />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {isLoading &&
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {COLUMNS.map((col) => (
+                    <TableCell key={col.id}>
+                      <Skeleton className="h-4 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
 
             {/* -- Error state -- */}
             {isError && (
               <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="p-8 text-center text-destructive">
+                <TableCell
+                  colSpan={COLUMNS.length}
+                  className="p-8 text-center text-destructive"
+                >
                   Failed to load tickets. Please try again.
                 </TableCell>
               </TableRow>
@@ -149,26 +123,46 @@ export function TicketsTable({ tickets, isLoading, isError }: TicketsTableProps)
             {/* -- Empty state -- */}
             {!isLoading && !isError && tickets.length === 0 && (
               <TableRow>
-                <TableCell colSpan={COLUMNS.length} className="p-8 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={COLUMNS.length}
+                  className="p-8 text-center text-muted-foreground"
+                >
                   No tickets found
                 </TableCell>
               </TableRow>
             )}
 
             {/* -- Data rows -- */}
-            {!isLoading && !isError && tickets.map((ticket) => (
-              <TableRow key={ticket.id} className="relative cursor-pointer">
-                <TableCell className="max-w-55 truncate font-medium">{ticket.title}</TableCell>
-                <TableCell><StatusBadge status={ticket.priority} /></TableCell>
-                <TableCell><StatusBadge status={ticket.status} /></TableCell>
-                <TableCell className="text-muted-foreground">{ticket.reportedBy?.name ?? "-"}</TableCell>
-                <TableCell className="text-muted-foreground">{ticket.assignedTo?.name ?? "Unassigned"}</TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">{formatDate(ticket.createdAt)}</TableCell>
-                <td className="absolute inset-0 p-0">
-                  <Link href={`/tickets/${ticket.id}`} className="block w-full h-full" />
-                </td>
-              </TableRow>
-            ))}
+            {!isLoading &&
+              !isError &&
+              tickets.map((ticket) => (
+                <TableRow key={ticket.id} className="relative cursor-pointer">
+                  <TableCell className="max-w-55 truncate font-medium">
+                    {ticket.title}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={ticket.priority} />
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={ticket.status} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {ticket.reportedBy?.name ?? "-"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {ticket.assignedTo?.name ?? "Unassigned"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {formatDate(ticket.createdAt)}
+                  </TableCell>
+                  <td className="absolute inset-0 p-0">
+                    <Link
+                      href={`/tickets/${ticket.id}`}
+                      className="block w-full h-full"
+                    />
+                  </td>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
