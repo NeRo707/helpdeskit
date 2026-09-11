@@ -14,11 +14,11 @@ const SEARCH_FIELDS = ["title", "reporter", "assigned"] as const;
 export type SortField = (typeof SORT_FIELDS)[number];
 
 export const COLUMNS: { id: string; label: string; sortable: boolean }[] = [
-  { id: "title", label: "Title", sortable: true },
+  { id: "title", label: "Title", sortable: false },
   { id: "priority", label: "Priority", sortable: true },
   { id: "status", label: "Status", sortable: true },
   { id: "reportedBy", label: "Reporter", sortable: false },
-  { id: "assigned", label: "Assigned", sortable: true },
+  { id: "assigned", label: "Assigned", sortable: false },
   { id: "createdAt", label: "Created", sortable: true },
 ];
 
